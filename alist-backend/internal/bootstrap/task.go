@@ -1,13 +1,14 @@
 package bootstrap
 
 import (
-	"github.com/alist-org/alist/v3/internal/conf"
-	"github.com/alist-org/alist/v3/internal/db"
-	"github.com/alist-org/alist/v3/internal/fs"
-	"github.com/alist-org/alist/v3/internal/offline_download/tool"
-	"github.com/alist-org/alist/v3/internal/op"
-	"github.com/alist-org/alist/v3/internal/setting"
-	"github.com/xhofe/tache"
+        "github.com/alist-org/alist/v3/internal/automation"
+        "github.com/alist-org/alist/v3/internal/conf"
+        "github.com/alist-org/alist/v3/internal/db"
+        "github.com/alist-org/alist/v3/internal/fs"
+        "github.com/alist-org/alist/v3/internal/offline_download/tool"
+        "github.com/alist-org/alist/v3/internal/op"
+        "github.com/alist-org/alist/v3/internal/setting"
+        "github.com/xhofe/tache"
 )
 
 func taskFilterNegative(num int) int64 {
@@ -37,12 +38,21 @@ func InitTaskManager() {
 	if len(tool.TransferTaskManager.GetAll()) == 0 { //prevent offline downloaded files from being deleted
 		CleanTempDir()
 	}
-	fs.ArchiveDownloadTaskManager = tache.NewManager[*fs.ArchiveDownloadTask](tache.WithWorks(setting.GetInt(conf.TaskDecompressDownloadThreadsNum, conf.Conf.Tasks.Decompress.Workers)), tache.WithPersistFunction(db.GetTaskDataFunc("decompress", conf.Conf.Tasks.Decompress.TaskPersistant), db.UpdateTaskDataFunc("decompress", conf.Conf.Tasks.Decompress.TaskPersistant)), tache.WithMaxRetry(conf.Conf.Tasks.Decompress.MaxRetry))
-	op.RegisterSettingChangingCallback(func() {
-		fs.ArchiveDownloadTaskManager.SetWorkersNumActive(taskFilterNegative(setting.GetInt(conf.TaskDecompressDownloadThreadsNum, conf.Conf.Tasks.Decompress.Workers)))
-	})
-	fs.ArchiveContentUploadTaskManager.Manager = tache.NewManager[*fs.ArchiveContentUploadTask](tache.WithWorks(setting.GetInt(conf.TaskDecompressUploadThreadsNum, conf.Conf.Tasks.DecompressUpload.Workers)), tache.WithMaxRetry(conf.Conf.Tasks.DecompressUpload.MaxRetry)) //decompress upload will not support persist
-	op.RegisterSettingChangingCallback(func() {
-		fs.ArchiveContentUploadTaskManager.SetWorkersNumActive(taskFilterNegative(setting.GetInt(conf.TaskDecompressUploadThreadsNum, conf.Conf.Tasks.DecompressUpload.Workers)))
-	})
+        fs.ArchiveDownloadTaskManager = tache.NewManager[*fs.ArchiveDownloadTask](tache.WithWorks(setting.GetInt(conf.TaskDecompressDownloadThreadsNum, conf.Conf.Tasks.Decompress.Workers)), tache.WithPersistFunction(db.GetTaskDataFunc("decompress", conf.Conf.Tasks.Decompress.TaskPersistant), db.UpdateTaskDataFunc("decompress", conf.Conf.Tasks.Decompress.TaskPersistant)), tache.WithMaxRetry(conf.Conf.Tasks.Decompress.MaxRetry))
+        op.RegisterSettingChangingCallback(func() {
+                fs.ArchiveDownloadTaskManager.SetWorkersNumActive(taskFilterNegative(setting.GetInt(conf.TaskDecompressDownloadThreadsNum, conf.Conf.Tasks.Decompress.Workers)))
+        })
+        fs.ArchiveCompressTaskManager = tache.NewManager[*fs.ArchiveCompressTask](
+                tache.WithWorks(setting.GetInt(conf.TaskCompressThreadsNum, conf.Conf.Tasks.Compress.Workers)),
+                tache.WithPersistFunction(db.GetTaskDataFunc("compress", conf.Conf.Tasks.Compress.TaskPersistant), db.UpdateTaskDataFunc("compress", conf.Conf.Tasks.Compress.TaskPersistant)),
+                tache.WithMaxRetry(conf.Conf.Tasks.Compress.MaxRetry),
+        )
+        op.RegisterSettingChangingCallback(func() {
+                fs.ArchiveCompressTaskManager.SetWorkersNumActive(taskFilterNegative(setting.GetInt(conf.TaskCompressThreadsNum, conf.Conf.Tasks.Compress.Workers)))
+        })
+        fs.ArchiveContentUploadTaskManager.Manager = tache.NewManager[*fs.ArchiveContentUploadTask](tache.WithWorks(setting.GetInt(conf.TaskDecompressUploadThreadsNum, conf.Conf.Tasks.DecompressUpload.Workers)), tache.WithMaxRetry(conf.Conf.Tasks.DecompressUpload.MaxRetry)) //decompress upload will not support persist
+        op.RegisterSettingChangingCallback(func() {
+                fs.ArchiveContentUploadTaskManager.SetWorkersNumActive(taskFilterNegative(setting.GetInt(conf.TaskDecompressUploadThreadsNum, conf.Conf.Tasks.DecompressUpload.Workers)))
+        })
+        automation.Init(db.GetTaskDataFunc("automation", true), db.UpdateTaskDataFunc("automation", true))
 }

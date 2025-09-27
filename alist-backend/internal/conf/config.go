@@ -54,13 +54,14 @@ type TaskConfig struct {
 }
 
 type TasksConfig struct {
-	Download           TaskConfig `json:"download" envPrefix:"DOWNLOAD_"`
-	Transfer           TaskConfig `json:"transfer" envPrefix:"TRANSFER_"`
-	Upload             TaskConfig `json:"upload" envPrefix:"UPLOAD_"`
-	Copy               TaskConfig `json:"copy" envPrefix:"COPY_"`
-	Decompress         TaskConfig `json:"decompress" envPrefix:"DECOMPRESS_"`
-	DecompressUpload   TaskConfig `json:"decompress_upload" envPrefix:"DECOMPRESS_UPLOAD_"`
-	AllowRetryCanceled bool       `json:"allow_retry_canceled" env:"ALLOW_RETRY_CANCELED"`
+        Download           TaskConfig `json:"download" envPrefix:"DOWNLOAD_"`
+        Transfer           TaskConfig `json:"transfer" envPrefix:"TRANSFER_"`
+        Upload             TaskConfig `json:"upload" envPrefix:"UPLOAD_"`
+        Copy               TaskConfig `json:"copy" envPrefix:"COPY_"`
+        Compress           TaskConfig `json:"compress" envPrefix:"COMPRESS_"`
+        Decompress         TaskConfig `json:"decompress" envPrefix:"DECOMPRESS_"`
+        DecompressUpload   TaskConfig `json:"decompress_upload" envPrefix:"DECOMPRESS_UPLOAD_"`
+        AllowRetryCanceled bool       `json:"allow_retry_canceled" env:"ALLOW_RETRY_CANCELED"`
 }
 
 type Cors struct {
@@ -170,16 +171,21 @@ func DefaultConfig() *Config {
 			Upload: TaskConfig{
 				Workers: 5,
 			},
-			Copy: TaskConfig{
-				Workers:  5,
-				MaxRetry: 2,
-				// TaskPersistant: true,
-			},
-			Decompress: TaskConfig{
-				Workers:  5,
-				MaxRetry: 2,
-				// TaskPersistant: true,
-			},
+                        Copy: TaskConfig{
+                                Workers:  5,
+                                MaxRetry: 2,
+                                // TaskPersistant: true,
+                        },
+                        Compress: TaskConfig{
+                                Workers:  5,
+                                MaxRetry: 2,
+                                // TaskPersistant: true,
+                        },
+                        Decompress: TaskConfig{
+                                Workers:  5,
+                                MaxRetry: 2,
+                                // TaskPersistant: true,
+                        },
 			DecompressUpload: TaskConfig{
 				Workers:  5,
 				MaxRetry: 2,

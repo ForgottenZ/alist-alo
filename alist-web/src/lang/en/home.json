@@ -36,6 +36,7 @@
     "input_new_name": "Input new name",
     "move": "Move",
     "copy": "Copy",
+    "compress": "压缩",
     "choose_dst_folder": "Select destination folder",
     "delete": "Delete",
     "delete-tips": "Are you sure to delete the selected object?",
@@ -43,6 +44,9 @@
     "decompress-pass": "Extraction password: ",
     "decompress-cache-full": "Cache full into a temp-file",
     "decompress-put-into-new": "Decompress into a new sub-folder",
+    "compress-name": "压缩包名称：",
+    "compress-password": "压缩密码（可选）：",
+    "compress-dst": "请选择保存压缩包的位置",
     "extract": "Extract to",
     "archive": {
       "input_password": "Please input extraction password",

@@ -146,14 +146,22 @@ func admin(g *gin.RouterGroup) {
 	setting.POST("/set_transmission", handles.SetTransmission)
 	setting.POST("/set_115", handles.Set115)
 	setting.POST("/set_pikpak", handles.SetPikPak)
-	setting.POST("/set_thunder", handles.SetThunder)
+        setting.POST("/set_thunder", handles.SetThunder)
 
-	// retain /admin/task API to ensure compatibility with legacy automation scripts
-	_task(g.Group("/task"))
+        // retain /admin/task API to ensure compatibility with legacy automation scripts
+        _task(g.Group("/task"))
 
-	ms := g.Group("/message")
-	ms.POST("/get", message.HttpInstance.GetHandle)
-	ms.POST("/send", message.HttpInstance.SendHandle)
+        automationGroup := g.Group("/automation")
+        automationGroup.GET("/list", handles.AutomationList)
+        automationGroup.POST("/create", handles.AutomationCreate)
+        automationGroup.POST("/update", handles.AutomationUpdate)
+        automationGroup.POST("/delete", handles.AutomationDelete)
+        automationGroup.POST("/toggle", handles.AutomationToggle)
+        automationGroup.POST("/run", handles.AutomationRun)
+
+        ms := g.Group("/message")
+        ms.POST("/get", message.HttpInstance.GetHandle)
+        ms.POST("/send", message.HttpInstance.SendHandle)
 
 	index := g.Group("/index")
 	index.POST("/build", middlewares.SearchIndex, handles.BuildIndex)
@@ -186,10 +194,11 @@ func _fs(g *gin.RouterGroup) {
 	// g.POST("/add_qbit", handles.AddQbittorrent)
 	// g.POST("/add_transmission", handles.SetTransmission)
 	g.POST("/add_offline_download", handles.AddOfflineDownload)
-	a := g.Group("/archive")
-	a.Any("/meta", handles.FsArchiveMeta)
-	a.Any("/list", handles.FsArchiveList)
-	a.POST("/decompress", handles.FsArchiveDecompress)
+        a := g.Group("/archive")
+        a.Any("/meta", handles.FsArchiveMeta)
+        a.Any("/list", handles.FsArchiveList)
+        a.POST("/decompress", handles.FsArchiveDecompress)
+        a.POST("/compress", handles.FsArchiveCompress)
 }
 
 func _task(g *gin.RouterGroup) {

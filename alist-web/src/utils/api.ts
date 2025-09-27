@@ -9,6 +9,9 @@ import {
   RenameObj,
   ArchiveMeta,
   ArchiveList,
+  AutomationListResp,
+  AutomationTask,
+  AutomationTaskRequest,
 } from "~/types"
 import { r } from "."
 
@@ -192,6 +195,53 @@ export const fsArchiveDecompress = (
     cache_full,
     put_into_new_dir,
   })
+}
+
+export const fsArchiveCompress = (
+  src_dir: string,
+  dst_dir: string,
+  name: string[],
+  archive_name: string,
+  password = "",
+): PEmptyResp => {
+  return r.post("/fs/archive/compress", {
+    src_dir,
+    dst_dir,
+    name,
+    archive_name,
+    password,
+  })
+}
+
+export const automationList = (): PResp<AutomationListResp> => {
+  return r.get("/automation/list")
+}
+
+export const automationCreate = (
+  payload: AutomationTaskRequest,
+): PResp<AutomationTask> => {
+  return r.post("/automation/create", payload)
+}
+
+export const automationUpdate = (
+  payload: AutomationTaskRequest,
+): PResp<AutomationTask> => {
+  return r.post("/automation/update", payload)
+}
+
+export const automationDelete = (id: string): PEmptyResp => {
+  return r.post("/automation/delete", { id })
+}
+
+export const automationToggle = (
+  id: string,
+  enabled: boolean,
+): PResp<AutomationTask> => {
+  return r.post("/automation/toggle", { id, enabled })
+}
+
+export const automationRun = (id: string): PResp<AutomationTask> => {
+  return r.post("/automation/run", { id })
 }
 
 export const offlineDownload = (

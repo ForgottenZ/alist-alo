@@ -130,11 +130,19 @@ func ArchiveList(ctx context.Context, path string, args model.ArchiveListArgs) (
 }
 
 func ArchiveDecompress(ctx context.Context, srcObjPath, dstDirPath string, args model.ArchiveDecompressArgs, lazyCache ...bool) (task.TaskExtensionInfo, error) {
-	t, err := archiveDecompress(ctx, srcObjPath, dstDirPath, args, lazyCache...)
-	if err != nil {
-		log.Errorf("failed decompress [%s]%s: %+v", srcObjPath, args.InnerPath, err)
-	}
-	return t, err
+        t, err := archiveDecompress(ctx, srcObjPath, dstDirPath, args, lazyCache...)
+        if err != nil {
+                log.Errorf("failed decompress [%s]%s: %+v", srcObjPath, args.InnerPath, err)
+        }
+        return t, err
+}
+
+func ArchiveCompress(ctx context.Context, srcDirPath, dstDirPath, archiveName string, names []string, password string) (task.TaskExtensionInfo, error) {
+        t, err := archiveCompress(ctx, srcDirPath, dstDirPath, archiveName, names, password)
+        if err != nil {
+                log.Errorf("failed compress %v to %s: %+v", names, dstDirPath, err)
+        }
+        return t, err
 }
 
 func ArchiveDriverExtract(ctx context.Context, path string, args model.ArchiveInnerArgs) (*model.Link, model.Obj, error) {

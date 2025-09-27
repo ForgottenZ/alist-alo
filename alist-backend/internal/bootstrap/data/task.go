@@ -20,10 +20,12 @@ func initTasks() {
 }
 
 func InitialTasks() []model.TaskItem {
-	initialTaskItems = []model.TaskItem{
-		{Key: "copy", PersistData: "[]"},
-		{Key: "download", PersistData: "[]"},
-		{Key: "transfer", PersistData: "[]"},
-	}
-	return initialTaskItems
+        initialTaskItems = []model.TaskItem{
+                {Key: "copy", PersistData: "[]"},
+                {Key: "download", PersistData: "[]"},
+                {Key: "transfer", PersistData: "[]"},
+                {Key: "compress", PersistData: "[]"},
+                {Key: "automation", PersistData: "[]"},
+        }
+        return initialTaskItems
 }

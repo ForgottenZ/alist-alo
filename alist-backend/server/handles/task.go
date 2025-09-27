@@ -216,10 +216,11 @@ func taskRoute[T task.TaskExtensionInfo](g *gin.RouterGroup, manager task.Manage
 }
 
 func SetupTaskRoute(g *gin.RouterGroup) {
-	taskRoute(g.Group("/upload"), fs.UploadTaskManager)
-	taskRoute(g.Group("/copy"), fs.CopyTaskManager)
-	taskRoute(g.Group("/offline_download"), tool.DownloadTaskManager)
-	taskRoute(g.Group("/offline_download_transfer"), tool.TransferTaskManager)
-	taskRoute(g.Group("/decompress"), fs.ArchiveDownloadTaskManager)
-	taskRoute(g.Group("/decompress_upload"), fs.ArchiveContentUploadTaskManager)
+        taskRoute(g.Group("/upload"), fs.UploadTaskManager)
+        taskRoute(g.Group("/copy"), fs.CopyTaskManager)
+        taskRoute(g.Group("/offline_download"), tool.DownloadTaskManager)
+        taskRoute(g.Group("/offline_download_transfer"), tool.TransferTaskManager)
+        taskRoute(g.Group("/decompress"), fs.ArchiveDownloadTaskManager)
+        taskRoute(g.Group("/decompress_upload"), fs.ArchiveContentUploadTaskManager)
+        taskRoute(g.Group("/compress"), fs.ArchiveCompressTaskManager)
 }

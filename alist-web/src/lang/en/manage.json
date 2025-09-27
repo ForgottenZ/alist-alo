@@ -15,6 +15,8 @@
     "tasks": "Tasks",
     "upload": "Upload",
     "copy": "Copy",
+    "automation": "自动化任务",
+    "compress": "压缩任务",
     "decompress": "Decompress",
     "backup-restore": "Backup & Restore",
     "home": "Home",
