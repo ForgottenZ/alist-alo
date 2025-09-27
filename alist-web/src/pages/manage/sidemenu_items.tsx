@@ -14,6 +14,7 @@ import {
   BsBucket,
   BsHddNetwork,
   BsArrowLeftRight,
+  BsListCheck,
 } from "solid-icons/bs"
 import { FiLogIn } from "solid-icons/fi"
 import { SiMetabase } from "solid-icons/si"
@@ -154,6 +155,13 @@ export const side_menu_items: SideMenuItem[] = [
         component: lazy(() => import("./tasks/Decompress")),
       },
     ],
+  },
+  {
+    title: "manage.sidemenu.automation",
+    icon: BsListCheck,
+    to: "/@manage/automation",
+    role: UserRole.GENERAL,
+    component: lazy(() => import("./automation/Automation")),
   },
   {
     title: "manage.sidemenu.users",

@@ -226,20 +226,28 @@ func (s *StringOrArray) UnmarshalJSON(data []byte) error {
 }
 
 type ArchiveDecompressReq struct {
-	SrcDir        string        `json:"src_dir" form:"src_dir"`
-	DstDir        string        `json:"dst_dir" form:"dst_dir"`
-	Name          StringOrArray `json:"name" form:"name"`
-	ArchivePass   string        `json:"archive_pass" form:"archive_pass"`
-	InnerPath     string        `json:"inner_path" form:"inner_path"`
-	CacheFull     bool          `json:"cache_full" form:"cache_full"`
-	PutIntoNewDir bool          `json:"put_into_new_dir" form:"put_into_new_dir"`
+        SrcDir        string        `json:"src_dir" form:"src_dir"`
+        DstDir        string        `json:"dst_dir" form:"dst_dir"`
+        Name          StringOrArray `json:"name" form:"name"`
+        ArchivePass   string        `json:"archive_pass" form:"archive_pass"`
+        InnerPath     string        `json:"inner_path" form:"inner_path"`
+        CacheFull     bool          `json:"cache_full" form:"cache_full"`
+        PutIntoNewDir bool          `json:"put_into_new_dir" form:"put_into_new_dir"`
+}
+
+type ArchiveCompressReq struct {
+        SrcDir      string   `json:"src_dir" form:"src_dir"`
+        DstDir      string   `json:"dst_dir" form:"dst_dir"`
+        Name        []string `json:"name" form:"name"`
+        ArchiveName string   `json:"archive_name" form:"archive_name"`
+        Password    string   `json:"password" form:"password"`
 }
 
 func FsArchiveDecompress(c *gin.Context) {
-	var req ArchiveDecompressReq
-	if err := c.ShouldBind(&req); err != nil {
-		common.ErrorResp(c, err, 400)
-		return
+        var req ArchiveDecompressReq
+        if err := c.ShouldBind(&req); err != nil {
+                common.ErrorResp(c, err, 400)
+                return
 	}
 	user := c.MustGet("user").(*model.User)
 	if !user.CanDecompress() {
@@ -289,9 +297,41 @@ func FsArchiveDecompress(c *gin.Context) {
 			tasks = append(tasks, t)
 		}
 	}
-	common.SuccessResp(c, gin.H{
-		"task": getTaskInfos(tasks),
-	})
+        common.SuccessResp(c, gin.H{
+                "task": getTaskInfos(tasks),
+        })
+}
+
+func FsArchiveCompress(c *gin.Context) {
+        var req ArchiveCompressReq
+        if err := c.ShouldBind(&req); err != nil {
+                common.ErrorResp(c, err, 400)
+                return
+        }
+        if len(req.Name) == 0 {
+                common.ErrorStrResp(c, "未选择任何文件", 400)
+                return
+        }
+        user := c.MustGet("user").(*model.User)
+        if !user.CanWrite() {
+                common.ErrorResp(c, errs.PermissionDenied, 403)
+                return
+        }
+        srcDir, err := user.JoinPath(req.SrcDir)
+        if err != nil {
+                common.ErrorResp(c, err, 403)
+                return
+        }
+        dstDir, err := user.JoinPath(req.DstDir)
+        if err != nil {
+                common.ErrorResp(c, err, 403)
+                return
+        }
+        if err := fs.ArchiveCompress(c, srcDir, req.Name, dstDir, req.ArchiveName, req.Password); err != nil {
+                common.ErrorResp(c, err, 500)
+                return
+        }
+        common.SuccessResp(c)
 }
 
 func ArchiveDown(c *gin.Context) {

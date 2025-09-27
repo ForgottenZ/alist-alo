@@ -23,7 +23,8 @@ func Init() {
 }
 
 func Release() {
-	db.Close()
+        bootstrap.CloseAutomation()
+        db.Close()
 }
 
 var pid = -1

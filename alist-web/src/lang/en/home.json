@@ -39,6 +39,7 @@
     "choose_dst_folder": "Select destination folder",
     "delete": "Delete",
     "delete-tips": "Are you sure to delete the selected object?",
+    "compress": "压缩",
     "decompress": "Decompress",
     "decompress-pass": "Extraction password: ",
     "decompress-cache-full": "Cache full into a temp-file",
