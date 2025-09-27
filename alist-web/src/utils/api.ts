@@ -9,6 +9,9 @@ import {
   RenameObj,
   ArchiveMeta,
   ArchiveList,
+  AutomationJob,
+  AutomationJobPayload,
+  AutomationHistory,
 } from "~/types"
 import { r } from "."
 
@@ -194,6 +197,22 @@ export const fsArchiveDecompress = (
   })
 }
 
+export const fsArchiveCompress = (
+  src_dir: string,
+  dst_dir: string,
+  name: string[],
+  archive_name: string,
+  password = "",
+): PEmptyResp => {
+  return r.post("/fs/archive/compress", {
+    src_dir,
+    dst_dir,
+    name,
+    archive_name,
+    password,
+  })
+}
+
 export const offlineDownload = (
   path: string,
   urls: string[],
@@ -230,6 +249,43 @@ export const fetchText = async (
           contentType: "",
         }
   }
+}
+
+export const automationList = (): PResp<AutomationJob[]> => {
+  return r.get("/admin/automation/jobs")
+}
+
+export const automationCreate = (
+  payload: AutomationJobPayload,
+): PResp<AutomationJob> => {
+  return r.post("/admin/automation/create", payload)
+}
+
+export const automationUpdate = (
+  payload: AutomationJobPayload,
+): PResp<AutomationJob> => {
+  return r.post("/admin/automation/update", payload)
+}
+
+export const automationDelete = (id: number): PEmptyResp => {
+  return r.post("/admin/automation/delete", { id })
+}
+
+export const automationToggle = (
+  id: number,
+  enabled: boolean,
+): PResp<AutomationJob> => {
+  return r.post("/admin/automation/toggle", { id, enabled })
+}
+
+export const automationRun = (id: number): PEmptyResp => {
+  return r.post("/admin/automation/run", { id })
+}
+
+export const automationHistory = (
+  id: number,
+): PResp<AutomationHistory[]> => {
+  return r.get("/admin/automation/history", { params: { job_id: id } })
 }
 
 export const fsSearch = async (

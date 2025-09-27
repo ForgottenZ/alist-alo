@@ -148,6 +148,15 @@ func admin(g *gin.RouterGroup) {
 	setting.POST("/set_pikpak", handles.SetPikPak)
 	setting.POST("/set_thunder", handles.SetThunder)
 
+	automationGroup := g.Group("/automation")
+	automationGroup.GET("/jobs", handles.ListAutomationJobs)
+	automationGroup.POST("/create", handles.CreateAutomationJob)
+	automationGroup.POST("/update", handles.UpdateAutomationJob)
+	automationGroup.POST("/delete", handles.DeleteAutomationJob)
+	automationGroup.POST("/toggle", handles.ToggleAutomationJob)
+	automationGroup.POST("/run", handles.RunAutomationJob)
+	automationGroup.GET("/history", handles.AutomationJobHistory)
+
 	// retain /admin/task API to ensure compatibility with legacy automation scripts
 	_task(g.Group("/task"))
 
@@ -190,6 +199,7 @@ func _fs(g *gin.RouterGroup) {
 	a.Any("/meta", handles.FsArchiveMeta)
 	a.Any("/list", handles.FsArchiveList)
 	a.POST("/decompress", handles.FsArchiveDecompress)
+	a.POST("/compress", handles.FsArchiveCompress)
 }
 
 func _task(g *gin.RouterGroup) {

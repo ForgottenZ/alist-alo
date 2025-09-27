@@ -14,6 +14,7 @@ import {
   BsBucket,
   BsHddNetwork,
   BsArrowLeftRight,
+  BsClockHistory,
 } from "solid-icons/bs"
 import { FiLogIn } from "solid-icons/fi"
 import { SiMetabase } from "solid-icons/si"
@@ -153,7 +154,21 @@ export const side_menu_items: SideMenuItem[] = [
         role: UserRole.GENERAL,
         component: lazy(() => import("./tasks/Decompress")),
       },
+      {
+        title: "manage.sidemenu.compress",
+        icon: TbArchive,
+        to: "/@manage/tasks/compress",
+        role: UserRole.GENERAL,
+        component: lazy(() => import("./tasks/Compress")),
+      },
     ],
+  },
+  {
+    title: "manage.sidemenu.automation",
+    icon: BsClockHistory,
+    to: "/@manage/automation",
+    role: UserRole.GENERAL,
+    component: lazy(() => import("./automation")),
   },
   {
     title: "manage.sidemenu.users",

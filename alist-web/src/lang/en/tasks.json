@@ -5,6 +5,7 @@
   "copy": "Copy file from a storage to another storage",
   "decompress": "Download and decompress an archive file",
   "decompress_upload": "Upload extracted file into target storage",
+  "compress": "压缩任务",
   "done": "Completed",
   "undone": "Running",
   "clear_succeeded": "Clear Succeeded",
@@ -56,6 +57,11 @@
       "dst": "Destination Path",
       "inner": "Inner Path",
       "password": "Extraction Password"
+    },
+    "compress": {
+      "count": "压缩对象数量",
+      "dst": "保存目录",
+      "archive": "压缩文件名"
     },
     "time_elapsed": "Time Elapsed",
     "status": "Status",

@@ -43,6 +43,7 @@ the address is defined in config file`,
 		bootstrap.InitOfflineDownloadTools()
 		bootstrap.LoadStorages()
 		bootstrap.InitTaskManager()
+		bootstrap.InitAutomationJobs()
 		if !flags.Debug && !flags.Dev {
 			gin.SetMode(gin.ReleaseMode)
 		}

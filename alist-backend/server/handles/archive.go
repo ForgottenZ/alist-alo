@@ -6,6 +6,7 @@ import (
 	"github.com/alist-org/alist/v3/internal/task"
 	"net/url"
 	stdpath "path"
+	"strings"
 
 	"github.com/alist-org/alist/v3/internal/archive/tool"
 	"github.com/alist-org/alist/v3/internal/conf"
@@ -292,6 +293,55 @@ func FsArchiveDecompress(c *gin.Context) {
 	common.SuccessResp(c, gin.H{
 		"task": getTaskInfos(tasks),
 	})
+}
+
+type ArchiveCompressReq struct {
+	SrcDir      string        `json:"src_dir" form:"src_dir"`
+	Name        StringOrArray `json:"name" form:"name"`
+	DstDir      string        `json:"dst_dir" form:"dst_dir"`
+	ArchiveName string        `json:"archive_name" form:"archive_name"`
+	Password    string        `json:"password" form:"password"`
+}
+
+func FsArchiveCompress(c *gin.Context) {
+	var req ArchiveCompressReq
+	if err := c.ShouldBind(&req); err != nil {
+		common.ErrorResp(c, err, 400)
+		return
+	}
+	user := c.MustGet("user").(*model.User)
+	if !user.CanDecompress() {
+		common.ErrorResp(c, errs.PermissionDenied, 403)
+		return
+	}
+	if strings.TrimSpace(req.ArchiveName) == "" {
+		common.ErrorStrResp(c, "压缩文件名不能为空", 400)
+		return
+	}
+	srcPaths := make([]string, 0, len(req.Name))
+	for _, name := range req.Name {
+		srcPath, err := user.JoinPath(stdpath.Join(req.SrcDir, name))
+		if err != nil {
+			common.ErrorResp(c, err, 403)
+			return
+		}
+		srcPaths = append(srcPaths, srcPath)
+	}
+	dstDir, err := user.JoinPath(req.DstDir)
+	if err != nil {
+		common.ErrorResp(c, err, 403)
+		return
+	}
+	t, err := fs.ArchiveCompress(c, srcPaths, dstDir, req.ArchiveName, req.Password)
+	if err != nil {
+		common.ErrorResp(c, err, 500)
+		return
+	}
+	tasks := make([]task.TaskExtensionInfo, 0, 1)
+	if t != nil {
+		tasks = append(tasks, t)
+	}
+	common.SuccessResp(c, gin.H{"task": getTaskInfos(tasks)})
 }
 
 func ArchiveDown(c *gin.Context) {
