@@ -16,6 +16,8 @@
     "upload": "Upload",
     "copy": "Copy",
     "decompress": "Decompress",
+    "automation": "自动化任务",
+    "compress": "压缩任务",
     "backup-restore": "Backup & Restore",
     "home": "Home",
     "indexes": "Indexes",

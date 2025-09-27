@@ -40,6 +40,7 @@
     "delete": "Delete",
     "delete-tips": "Are you sure to delete the selected object?",
     "decompress": "Decompress",
+    "compress": "压缩",
     "decompress-pass": "Extraction password: ",
     "decompress-cache-full": "Cache full into a temp-file",
     "decompress-put-into-new": "Decompress into a new sub-folder",

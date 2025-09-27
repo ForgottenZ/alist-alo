@@ -194,6 +194,22 @@ export const fsArchiveDecompress = (
   })
 }
 
+export const fsArchiveCompress = (
+  src_dir: string,
+  name: string[],
+  dst_dir: string,
+  archive_name: string,
+  password = "",
+): PEmptyResp => {
+  return r.post("/fs/archive/compress", {
+    src_dir,
+    name,
+    dst_dir,
+    archive_name,
+    password,
+  })
+}
+
 export const offlineDownload = (
   path: string,
   urls: string[],
@@ -231,6 +247,22 @@ export const fetchText = async (
         }
   }
 }
+
+export const automationList = () => r.get("/automation/list")
+
+export const automationDetail = (id: number) =>
+  r.get("/automation/detail", { params: { id } })
+
+export const automationCreate = (data: any) => r.post("/automation/create", data)
+
+export const automationUpdate = (data: any) => r.post("/automation/update", data)
+
+export const automationDelete = (id: number) => r.post("/automation/delete", { id })
+
+export const automationToggle = (id: number, enabled: boolean) =>
+  r.post("/automation/toggle", { id, enabled })
+
+export const automationRun = (id: number) => r.post("/automation/run", { id })
 
 export const fsSearch = async (
   parent: string,

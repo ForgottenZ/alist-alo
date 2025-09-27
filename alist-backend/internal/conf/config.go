@@ -60,6 +60,7 @@ type TasksConfig struct {
 	Copy               TaskConfig `json:"copy" envPrefix:"COPY_"`
 	Decompress         TaskConfig `json:"decompress" envPrefix:"DECOMPRESS_"`
 	DecompressUpload   TaskConfig `json:"decompress_upload" envPrefix:"DECOMPRESS_UPLOAD_"`
+	Compress           TaskConfig `json:"compress" envPrefix:"COMPRESS_"`
 	AllowRetryCanceled bool       `json:"allow_retry_canceled" env:"ALLOW_RETRY_CANCELED"`
 }
 
@@ -183,6 +184,11 @@ func DefaultConfig() *Config {
 			DecompressUpload: TaskConfig{
 				Workers:  5,
 				MaxRetry: 2,
+			},
+			Compress: TaskConfig{
+				Workers:  5,
+				MaxRetry: 2,
+				// TaskPersistant: true,
 			},
 			AllowRetryCanceled: false,
 		},

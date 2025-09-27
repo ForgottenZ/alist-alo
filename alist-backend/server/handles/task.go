@@ -222,4 +222,5 @@ func SetupTaskRoute(g *gin.RouterGroup) {
 	taskRoute(g.Group("/offline_download_transfer"), tool.TransferTaskManager)
 	taskRoute(g.Group("/decompress"), fs.ArchiveDownloadTaskManager)
 	taskRoute(g.Group("/decompress_upload"), fs.ArchiveContentUploadTaskManager)
+	taskRoute(g.Group("/compress"), fs.CompressTaskManager)
 }

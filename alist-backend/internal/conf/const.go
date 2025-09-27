@@ -125,6 +125,7 @@ const (
 	TaskCopyThreadsNum                    = "copy_task_threads_num"
 	TaskDecompressDownloadThreadsNum      = "decompress_download_task_threads_num"
 	TaskDecompressUploadThreadsNum        = "decompress_upload_task_threads_num"
+	TaskCompressThreadsNum                = "compress_task_threads_num"
 	StreamMaxClientDownloadSpeed          = "max_client_download_speed"
 	StreamMaxClientUploadSpeed            = "max_client_upload_speed"
 	StreamMaxServerDownloadSpeed          = "max_server_download_speed"

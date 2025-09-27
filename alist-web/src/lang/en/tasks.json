@@ -4,6 +4,7 @@
   "upload": "Upload file to corresponding storage",
   "copy": "Copy file from a storage to another storage",
   "decompress": "Download and decompress an archive file",
+  "compress": "压缩文件任务",
   "decompress_upload": "Upload extracted file into target storage",
   "done": "Completed",
   "undone": "Running",

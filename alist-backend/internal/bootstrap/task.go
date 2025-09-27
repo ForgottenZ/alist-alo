@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"github.com/alist-org/alist/v3/internal/automation"
 	"github.com/alist-org/alist/v3/internal/conf"
 	"github.com/alist-org/alist/v3/internal/db"
 	"github.com/alist-org/alist/v3/internal/fs"
@@ -45,4 +46,13 @@ func InitTaskManager() {
 	op.RegisterSettingChangingCallback(func() {
 		fs.ArchiveContentUploadTaskManager.SetWorkersNumActive(taskFilterNegative(setting.GetInt(conf.TaskDecompressUploadThreadsNum, conf.Conf.Tasks.DecompressUpload.Workers)))
 	})
+	fs.CompressTaskManager = tache.NewManager[*fs.CompressTask](
+		tache.WithWorks(setting.GetInt(conf.TaskCompressThreadsNum, conf.Conf.Tasks.Compress.Workers)),
+		tache.WithPersistFunction(db.GetTaskDataFunc("compress", conf.Conf.Tasks.Compress.TaskPersistant), db.UpdateTaskDataFunc("compress", conf.Conf.Tasks.Compress.TaskPersistant)),
+		tache.WithMaxRetry(conf.Conf.Tasks.Compress.MaxRetry),
+	)
+	op.RegisterSettingChangingCallback(func() {
+		fs.CompressTaskManager.SetWorkersNumActive(taskFilterNegative(setting.GetInt(conf.TaskCompressThreadsNum, conf.Conf.Tasks.Compress.Workers)))
+	})
+	automation.Init()
 }

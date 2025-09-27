@@ -92,6 +92,7 @@ func Init(e *gin.Engine) {
 
 	_fs(auth.Group("/fs"))
 	_task(auth.Group("/task", middlewares.AuthNotGuest))
+	handles.SetupAutomationRoute(auth.Group("/automation", middlewares.AuthNotGuest))
 	admin(auth.Group("/admin", middlewares.AuthAdmin))
 	if flags.Debug || flags.Dev {
 		debug(g.Group("/debug"))
@@ -190,6 +191,7 @@ func _fs(g *gin.RouterGroup) {
 	a.Any("/meta", handles.FsArchiveMeta)
 	a.Any("/list", handles.FsArchiveList)
 	a.POST("/decompress", handles.FsArchiveDecompress)
+	a.POST("/compress", handles.FsArchiveCompress)
 }
 
 func _task(g *gin.RouterGroup) {

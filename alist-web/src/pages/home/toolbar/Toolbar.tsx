@@ -16,6 +16,7 @@ import { ModalWrapper } from "./ModalWrapper"
 import { LocalSettings } from "./LocalSettings"
 import { BackTop } from "./BackTop"
 import { Decompress } from "~/pages/home/toolbar/Decompress"
+import { Compress } from "~/pages/home/toolbar/Compress"
 
 const Upload = lazy(() => import("../uploads/Upload"))
 
@@ -26,6 +27,7 @@ export const Modal = () => {
       <Move />
       <Rename />
       <Delete />
+      <Compress />
       <Decompress />
       <NewFile />
       <Mkdir />
