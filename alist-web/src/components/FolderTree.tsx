@@ -251,13 +251,24 @@ export const FolderChooseInput = (props: {
 }) => {
   const { isOpen, onOpen, onClose } = createDisclosure()
   const t = useT()
+  const [internal, setInternal] = createSignal(props.value ?? "")
+
+  createEffect(() => {
+    setInternal(props.value ?? "")
+  })
+
+  const commitValue = (path: string) => {
+    setInternal(path)
+    props.onChange(path)
+  }
+
   return (
     <>
       <HStack w="$full" spacing="$2">
         <Input
           id={props.id}
-          value={props.value}
-          onInput={(e) => props.onChange(e.currentTarget.value)}
+          value={internal()}
+          onInput={(e) => commitValue(e.currentTarget.value)}
           readOnly={props.onlyFolder}
           onClick={props.onlyFolder ? onOpen : () => {}}
           placeholder={t(
@@ -276,7 +287,7 @@ export const FolderChooseInput = (props: {
           <ModalCloseButton />
           <ModalHeader>{t("global.choose_folder")}</ModalHeader>
           <ModalBody>
-            <FolderTree forceRoot onChange={props.onChange} />
+            <FolderTree forceRoot onChange={commitValue} />
           </ModalBody>
           <ModalFooter>
             <Button onClick={onClose}>{t("global.confirm")}</Button>
