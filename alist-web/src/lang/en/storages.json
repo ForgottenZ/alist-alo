@@ -1,47 +1,47 @@
 {
   "common": {
-    "mount_path": "Mount Path",
-    "mount_path-tips": "The path you want to mount to, it is unique and cannot be repeated",
-    "driver": "Driver",
-    "order": "Order",
-    "order-tips": "Use to sort",
-    "status": "Status",
-    "remark": "Remark",
-    "cache_expiration": "Cache Expiration",
-    "cache_expiration-tips": "The cache expiration time for this storage(minutes)",
-    "down_proxy_url": "Download proxy URL",
-    "web_proxy": "Web proxy",
-    "webdav_policy": "WebDAV policy",
-    "proxy_range": "Proxy Range",
-    "proxy_range-tips": "Need to enable proxy",
+    "mount_path": "挂载路径",
+    "mount_path-tips": "想要挂载到的路径，需唯一且不可重复",
+    "driver": "驱动",
+    "order": "排序值",
+    "order-tips": "用于排序",
+    "status": "状态",
+    "remark": "备注",
+    "cache_expiration": "缓存过期时间",
+    "cache_expiration-tips": "该存储的缓存过期时间（分钟）",
+    "down_proxy_url": "下载代理 URL",
+    "web_proxy": "网页代理",
+    "webdav_policy": "WebDAV 策略",
+    "proxy_range": "代理范围",
+    "proxy_range-tips": "需要启用代理",
     "webdav_policys": {
-      "302_redirect": "302 redirect",
-      "use_proxy_url": "use proxy URL",
-      "native_proxy": "native proxy"
+      "302_redirect": "302 重定向",
+      "use_proxy_url": "使用代理 URL",
+      "native_proxy": "原生代理"
     },
-    "order_by": "Order by",
+    "order_by": "排序字段",
     "order_bys": {
-      "name": "Name",
-      "size": "Size",
-      "modified": "Modified"
+      "name": "名称",
+      "size": "大小",
+      "modified": "修改时间"
     },
-    "order_direction": "Order direction",
+    "order_direction": "排序方向",
     "order_directions": {
-      "asc": "Ascending",
-      "desc": "Descending"
+      "asc": "升序",
+      "desc": "降序"
     },
-    "extract_folder": "Extract folder",
+    "extract_folder": "解压目录",
     "extract_folders": {
-      "front": "Extract to front",
-      "back": "Extract to back"
+      "front": "解压到前端",
+      "back": "解压到后端"
     },
-    "enable_sign": "Enable sign",
-    "disable_index": "Disable index"
+    "enable_sign": "启用签名",
+    "disable_index": "禁用索引"
   },
   "other": {
-    "start_load_success": "Start loading",
-    "load_all": "Reload All",
-    "filter_by_driver": "Filter by driver",
-    "table_layout": "Table layout"
+    "start_load_success": "开始加载",
+    "load_all": "重新加载全部",
+    "filter_by_driver": "按驱动筛选",
+    "table_layout": "表格布局"
   }
 }
