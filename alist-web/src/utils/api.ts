@@ -15,7 +15,7 @@ import {
   AutomationTask,
   AutomationTaskPayload,
 } from "~/types/automation"
-import { r } from "."
+import { r } from "./request"
 
 export const fsGet = (
   path: string = "/",
