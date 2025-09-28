@@ -1,12 +1,12 @@
 {
-  "path": "Path",
-  "password": "Password",
-  "write": "Write",
-  "hide": "Hide",
-  "readme": "Readme",
-  "readme_help": "Render a markdown at the bottom, support content or link",
-  "header": "Header",
-  "header_help": "Render a markdown at the top, support content or link",
-  "apply_sub": "Apply to sub folder",
-  "hide_help": "One regular expression per line"
+  "path": "路径",
+  "password": "访问密码",
+  "write": "写入",
+  "hide": "隐藏",
+  "readme": "自述文件",
+  "readme_help": "在底部渲染一段 Markdown，支持直接写内容或链接",
+  "header": "页眉",
+  "header_help": "在顶部渲染一段 Markdown，支持直接写内容或链接",
+  "apply_sub": "应用到子文件夹",
+  "hide_help": "每行一条正则表达式"
 }

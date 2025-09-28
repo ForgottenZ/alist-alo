@@ -1,65 +1,65 @@
 {
-  "offline_download": "Download file to local machine",
-  "offline_download_transfer": "Transfer downloaded file to corresponding storage",
-  "upload": "Upload file to corresponding storage",
-  "copy": "Copy file from a storage to another storage",
-  "decompress": "Download and decompress an archive file",
-  "decompress_upload": "Upload extracted file into target storage",
-  "done": "Completed",
-  "undone": "Running",
-  "clear_succeeded": "Clear Succeeded",
-  "retry": "Retry",
-  "retry_failed": "Retry Failed",
+  "offline_download": "下载文件到本地",
+  "offline_download_transfer": "将已下载文件转存到对应存储",
+  "upload": "上传文件到对应存储",
+  "copy": "在存储之间复制文件",
+  "decompress": "下载并解压压缩包",
+  "decompress_upload": "将解压后的文件上传到目标存储",
+  "done": "已完成",
+  "undone": "进行中",
+  "clear_succeeded": "清除已成功",
+  "retry": "重试",
+  "retry_failed": "重试失败",
   "state": {
-    "0": "Pending",
-    "1": "Running",
-    "2": "Succeeded",
-    "3": "Canceling",
-    "4": "Canceled",
-    "5": "Errored",
-    "6": "Failing",
-    "7": "Failed",
-    "8": "WaitingRetry",
-    "9": "BeforeRetry"
+    "0": "排队中",
+    "1": "运行中",
+    "2": "成功",
+    "3": "取消中",
+    "4": "已取消",
+    "5": "出错",
+    "6": "将失败",
+    "7": "失败",
+    "8": "等待重试",
+    "9": "准备重试"
   },
-  "retry_selected": "Retry Selected",
-  "cancel_selected": "Cancel Selected",
-  "delete_selected": "Delete Selected",
-  "filter": "Filter",
-  "expand": "Expand",
-  "fold": "Fold",
-  "expand_all": "Expand All",
-  "fold_all": "Fold All",
+  "retry_selected": "重试所选",
+  "cancel_selected": "取消所选",
+  "delete_selected": "删除所选",
+  "filter": "筛选",
+  "expand": "展开",
+  "fold": "收起",
+  "expand_all": "全部展开",
+  "fold_all": "全部收起",
   "attr": {
-    "name": "Name",
-    "creator": "Creator",
-    "state": "State",
-    "progress": "Progress",
-    "speed": "Speed",
-    "operation": "Operation",
+    "name": "名称",
+    "creator": "创建者",
+    "state": "状态",
+    "progress": "进度",
+    "speed": "速度",
+    "operation": "操作",
     "copy": {
-      "src": "Source Path",
-      "dst": "Destination Path"
+      "src": "源路径",
+      "dst": "目标路径"
     },
     "upload": {
-      "path": "Path"
+      "path": "路径"
     },
     "offline_download": {
       "url": "URL",
-      "path": "Destination Path",
-      "transfer_src": "Source Path",
-      "transfer_src_local": "Source Path (Local)",
-      "transfer_dst": "Destination Path"
+      "path": "目标路径",
+      "transfer_src": "源路径",
+      "transfer_src_local": "源路径（本地）",
+      "transfer_dst": "目标路径"
     },
     "decompress": {
-      "src": "Source Path",
-      "dst": "Destination Path",
-      "inner": "Inner Path",
-      "password": "Extraction Password"
+      "src": "源路径",
+      "dst": "目标路径",
+      "inner": "内部路径",
+      "password": "解压密码"
     },
-    "time_elapsed": "Time Elapsed",
-    "status": "Status",
-    "err": "Error"
+    "time_elapsed": "耗时",
+    "status": "状态",
+    "err": "错误"
   },
-  "show_only_mine": "Show only my tasks"
+  "show_only_mine": "仅显示我的任务"
 }
