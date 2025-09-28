@@ -161,6 +161,7 @@ export const side_menu_items: SideMenuItem[] = [
     icon: BsListCheck,
     to: "/@manage/automation",
     role: UserRole.GENERAL,
+    permission: "automation",
     component: lazy(() => import("./automation/Automation")),
   },
   {
