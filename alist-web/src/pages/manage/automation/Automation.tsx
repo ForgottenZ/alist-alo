@@ -218,13 +218,19 @@ const Automation = () => {
         options: step.options || {},
       })),
     }
-    const resp = payload.id
-      ? await updateTask(normalized)
-      : await createTask(normalized)
-    handleRespWithNotifySuccess(resp, () => {
-      editDisclosure.onClose()
-      refresh()
-    })
+    try {
+      const resp = payload.id
+        ? await updateTask(normalized)
+        : await createTask(normalized)
+      handleRespWithNotifySuccess(resp, () => {
+        editDisclosure.onClose()
+        refresh()
+      })
+    } catch (err) {
+      console.error("Failed to save automation task", err)
+      const message = err instanceof Error ? err.message : String(err)
+      notify.error(message)
+    }
   }
 
   const removeTask = async (id: number) => {
@@ -627,7 +633,7 @@ const Automation = () => {
                           源路径或通配符
                         </Text>
                         <FolderChooseInput
-                          value={step.source}
+                          value={step.source || ""}
                           onChange={(value) =>
                             updateCurrent((payload) => {
                               const steps = [...payload.steps]
