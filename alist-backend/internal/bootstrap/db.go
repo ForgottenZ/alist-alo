@@ -40,11 +40,14 @@ func InitDB() {
 	}
 	var dB *gorm.DB
 	var err error
+	dbType := conf.Conf.Database.Type
 	if flags.Dev {
 		dB, err = gorm.Open(sqlite.Open("file::memory:?cache=shared"), gormConfig)
 		conf.Conf.Database.Type = "sqlite3"
+		dbType = "sqlite3"
 	} else {
 		database := conf.Conf.Database
+		dbType = database.Type
 		switch database.Type {
 		case "sqlite3":
 			{
@@ -83,6 +86,9 @@ func InitDB() {
 		}
 	}
 	if err != nil {
+		if strings.Contains(err.Error(), "CGO_ENABLED=0") && dbType == "sqlite3" {
+			log.Fatalf("failed to connect database: 当前环境禁用了CGO，SQLite驱动无法使用，请在编译/运行时开启CGO或切换到MySQL/PostgreSQL数据库: %s", err.Error())
+		}
 		log.Fatalf("failed to connect database:%s", err.Error())
 	}
 	db.Init(dB)
