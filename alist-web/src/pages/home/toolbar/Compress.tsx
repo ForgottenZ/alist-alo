@@ -1,7 +1,7 @@
 import { createDisclosure, Input, Text, VStack } from "@hope-ui/solid"
 import { batch, createSignal, onCleanup } from "solid-js"
 import { ModalFolderChoose } from "~/components"
-import { selectedObjs } from "~/store"
+import { selectedObjs, userCan } from "~/store"
 import { bus, fsArchiveCompress, handleRespWithNotifySuccess } from "~/utils"
 import { useFetch, usePath, useRouter, useT } from "~/hooks"
 
@@ -26,6 +26,9 @@ export const Compress = () => {
   const [archiveName, setArchiveName] = createSignal("压缩包.zip")
   const [password, setPassword] = createSignal("")
   const [loading, submit] = useFetch(fsArchiveCompress)
+  if (!userCan("compress")) {
+    return null
+  }
 
   const handler = (name: string) => {
     if (name === "compress") {

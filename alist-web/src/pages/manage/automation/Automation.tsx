@@ -34,10 +34,10 @@ import {
   Divider,
   IconButton,
 } from "@hope-ui/solid"
-import { createSignal, For, Show, onMount } from "solid-js"
+import { createMemo, createSignal, For, Show, onMount } from "solid-js"
 import { BsPlus, BsX } from "solid-icons/bs"
 import { FaSolidArrowDown, FaSolidArrowUp } from "solid-icons/fa"
-import { useFetch, useManageTitle } from "~/hooks"
+import { useFetch, useManageTitle, useT } from "~/hooks"
 import {
   automationCreate,
   automationDelete,
@@ -57,6 +57,8 @@ import {
   AutomationTask,
   AutomationTaskPayload,
 } from "~/types/automation"
+import { FolderChooseInput } from "~/components"
+import { userCan } from "~/store"
 
 const weekdayLabels = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
 
@@ -138,7 +140,16 @@ const actionOptions = [
 ]
 
 const Automation = () => {
+  const t = useT()
   useManageTitle("manage.sidemenu.automation")
+  const hasAutomationPermission = createMemo(() => userCan("automation"))
+  if (!hasAutomationPermission()) {
+    return (
+      <VStack alignItems="flex-start" spacing="$3" w="$full">
+        <Text color="$danger11">{t("global.no_permission")}</Text>
+      </VStack>
+    )
+  }
   const [tasks, setTasks] = createSignal<AutomationTask[]>([])
   const [editing, setEditing] = createSignal<AutomationTaskPayload | null>(null)
   const [historyTitle, setHistoryTitle] = createSignal("")
@@ -611,39 +622,47 @@ const Automation = () => {
                           </SelectListbox>
                         </SelectContent>
                       </Select>
-                      <Input
-                        placeholder="源路径或通配符"
-                        value={step.source}
-                        onInput={(e: any) =>
-                          updateCurrent((payload) => {
-                            const steps = [...payload.steps]
-                            steps[index()] = {
-                              ...steps[index()],
-                              source: (e.target as HTMLInputElement).value,
-                            }
-                            return { ...payload, steps }
-                          })
-                        }
-                      />
-                      <Show
-                        when={["copy", "move", "decompress"].includes(
-                          step.action,
-                        )}
-                      >
-                        <Input
-                          placeholder="目标路径"
-                          value={step.target || ""}
-                          onInput={(e: any) =>
+                      <VStack alignItems="flex-start" spacing="$1">
+                        <Text fontSize="$sm" color="$neutral11">
+                          源路径或通配符
+                        </Text>
+                        <FolderChooseInput
+                          value={step.source}
+                          onChange={(value) =>
                             updateCurrent((payload) => {
                               const steps = [...payload.steps]
                               steps[index()] = {
                                 ...steps[index()],
-                                target: (e.target as HTMLInputElement).value,
+                                source: value,
                               }
                               return { ...payload, steps }
                             })
                           }
                         />
+                      </VStack>
+                      <Show
+                        when={["copy", "move", "decompress"].includes(
+                          step.action,
+                        )}
+                      >
+                        <VStack alignItems="flex-start" spacing="$1">
+                          <Text fontSize="$sm" color="$neutral11">
+                            目标路径
+                          </Text>
+                          <FolderChooseInput
+                            value={step.target || ""}
+                            onChange={(value) =>
+                              updateCurrent((payload) => {
+                                const steps = [...payload.steps]
+                                steps[index()] = {
+                                  ...steps[index()],
+                                  target: value,
+                                }
+                                return { ...payload, steps }
+                              })
+                            }
+                          />
+                        </VStack>
                       </Show>
                       <Show when={step.action === "rename"}>
                         <Input
