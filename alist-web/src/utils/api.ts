@@ -10,7 +10,12 @@ import {
   ArchiveMeta,
   ArchiveList,
 } from "~/types"
-import { r } from "."
+import {
+  AutomationHistoryItem,
+  AutomationTask,
+  AutomationTaskPayload,
+} from "~/types/automation"
+import { r } from "./request"
 
 export const fsGet = (
   path: string = "/",
@@ -192,6 +197,61 @@ export const fsArchiveDecompress = (
     cache_full,
     put_into_new_dir,
   })
+}
+
+export const fsArchiveCompress = (
+  src_dir: string,
+  dst_dir: string,
+  name: string[],
+  archive_name: string,
+  password = "",
+): PEmptyResp => {
+  return r.post("/fs/archive/compress", {
+    src_dir,
+    dst_dir,
+    name,
+    archive_name,
+    password,
+  })
+}
+
+const automationBase = "/admin/automation"
+
+export const automationList = (): PResp<AutomationTask[]> => {
+  return r.get(`${automationBase}/list`)
+}
+
+export const automationCreate = (
+  payload: AutomationTaskPayload,
+): PResp<AutomationTask> => {
+  return r.post(`${automationBase}/create`, payload)
+}
+
+export const automationUpdate = (
+  payload: AutomationTaskPayload,
+): PResp<AutomationTask> => {
+  return r.post(`${automationBase}/update`, payload)
+}
+
+export const automationDelete = (id: number): PEmptyResp => {
+  return r.post(`${automationBase}/delete`, { id })
+}
+
+export const automationToggle = (
+  id: number,
+  enabled: boolean,
+): PResp<AutomationTask> => {
+  return r.post(`${automationBase}/toggle`, { id, enabled })
+}
+
+export const automationRun = (id: number): PEmptyResp => {
+  return r.post(`${automationBase}/run`, { id })
+}
+
+export const automationHistory = (
+  id: number,
+): PResp<AutomationHistoryItem[]> => {
+  return r.get(`${automationBase}/history`, { params: { id } })
 }
 
 export const offlineDownload = (
