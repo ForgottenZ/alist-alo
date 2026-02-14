@@ -23,4 +23,6 @@ export type Upload = (
   asTask: boolean,
   overwrite: boolean,
   rapid: boolean,
+  chunk: boolean,
+  chunkSize: number,
 ) => Promise<Error | undefined>

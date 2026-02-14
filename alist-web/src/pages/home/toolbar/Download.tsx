@@ -65,7 +65,7 @@ const PackageDownload = lazy(() => import("./PackageDownload"))
 export const PackageDownloadModal = () => {
   const t = useT()
   const handler = (name: string) => {
-    if (name === "package_download") {
+    if (name === "package_download" || name === "compress") {
       if (!getSettingBool("package_download")) return
       onOpen()
     }

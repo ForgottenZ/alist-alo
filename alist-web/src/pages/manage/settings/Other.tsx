@@ -246,6 +246,12 @@ const OtherSettings = () => {
       >
         {t("settings_other.set_thunder")}
       </Button>
+      <Heading my="$2">{t("settings_other.upload_behavior")}</Heading>
+      <SimpleGrid gap="$2" columns={{ "@initial": 1, "@md": 2 }}>
+        <Item {...settings().find((i) => i.key === "default_try_rapid_upload")!} />
+        <Item {...settings().find((i) => i.key === "default_chunk_upload_enabled")!} />
+      </SimpleGrid>
+      <Item {...settings().find((i) => i.key === "footer_text")!} />
       <Heading my="$2">{t("settings.token")}</Heading>
       <Input value={token()} readOnly />
       <HStack my="$2" spacing="$2">
