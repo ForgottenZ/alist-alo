@@ -1,0 +1,65 @@
+{
+  "offline_download": "下载 file to local machine",
+  "offline_download_transfer": "Transfer 下载ed file to corresponding storage",
+  "upload": "上传 file to corresponding storage",
+  "copy": "复制 file from a storage to another storage",
+  "decompress": "下载 and decompress an archive file",
+  "decompress_upload": "上传 extracted file into target storage",
+  "done": "Completed",
+  "undone": "Running",
+  "clear_succeeded": "Clear Succeeded",
+  "retry": "Retry",
+  "retry_failed": "Retry 失败",
+  "state": {
+    "0": "等待中",
+    "1": "Running",
+    "2": "Succeeded",
+    "3": "取消ing",
+    "4": "取消ed",
+    "5": "错误ed",
+    "6": "Failing",
+    "7": "失败",
+    "8": "WaitingRetry",
+    "9": "BeforeRetry"
+  },
+  "retry_selected": "Retry Selected",
+  "cancel_selected": "取消 Selected",
+  "delete_selected": "删除 Selected",
+  "filter": "Filter",
+  "expand": "Expand",
+  "fold": "Fold",
+  "expand_all": "Expand All",
+  "fold_all": "Fold All",
+  "attr": {
+    "name": "名称",
+    "creator": "Creator",
+    "state": "State",
+    "progress": "进度",
+    "speed": "Speed",
+    "operation": "Operation",
+    "copy": {
+      "src": "Source 路径",
+      "dst": "Destination 路径"
+    },
+    "upload": {
+      "path": "路径"
+    },
+    "offline_download": {
+      "url": "URL",
+      "path": "Destination 路径",
+      "transfer_src": "Source 路径",
+      "transfer_src_local": "Source 路径 (Local)",
+      "transfer_dst": "Destination 路径"
+    },
+    "decompress": {
+      "src": "Source 路径",
+      "dst": "Destination 路径",
+      "inner": "Inner 路径",
+      "password": "Extraction 密码"
+    },
+    "time_elapsed": "时间 Elapsed",
+    "status": "状态",
+    "err": "错误"
+  },
+  "show_only_mine": "Show only my tasks"
+}

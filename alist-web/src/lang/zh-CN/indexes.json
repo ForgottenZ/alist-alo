@@ -1,0 +1,15 @@
+{
+  "search_index": "搜索 index",
+  "current": "当前 indexes",
+  "build": "Build indexes",
+  "rebuild": "Rebuild indexes",
+  "paths_to_update": "路径s to update",
+  "max_depth": "Max depth",
+  "update": "Update indexes",
+  "obj_count": "Object count",
+  "last_done_time": "Last done time",
+  "unknown": "Unknown",
+  "stop": "Stop",
+  "clear": "Clear",
+  "error": "错误"
+}

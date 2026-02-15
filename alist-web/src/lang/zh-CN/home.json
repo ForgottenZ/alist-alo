@@ -1,0 +1,182 @@
+{
+  "obj": {
+    "name": "名称",
+    "size": "大小",
+    "modified": "Modified"
+  },
+  "preview": {
+    "download": "下载",
+    "failed_load_img": "失败 to load image",
+    "open_with": "打开 with ...",
+    "play_with": "Play with ...",
+    "install": "Install",
+    "installing": "Installing",
+    "tr-install": "TrollStore",
+    "tr-installing": "TrollStore Installing",
+    "open_in_new_window": "打开 in new window",
+    "auto_next": "Auto next"
+  },
+  "layouts": {
+    "list": "List View",
+    "grid": "Grid View",
+    "image": "Image View"
+  },
+  "no_images": "No images in the current folder",
+  "load_more": "Load more",
+  "no_more": "No more",
+  "input_password": "Please input password",
+  "toolbar": {
+    "more": "More",
+    "refresh": "Refresh",
+    "toggle_theme": "Toggle Theme",
+    "switch_lang": "切换语言",
+    "toggle_markdown_toc": "Toggle Outline",
+    "toggle_checkbox": "Toggle Checkbox",
+    "rename": "重命名",
+    "input_new_name": "Input new name",
+    "move": "移动",
+    "copy": "复制",
+    "choose_dst_folder": "Select destination folder",
+    "delete": "删除",
+    "delete-tips": "Are you sure to 删除 the selected object?",
+    "decompress": "解压",
+    "decompress-pass": "Extraction password: ",
+    "decompress-cache-full": "Cache full into a temp-file",
+    "decompress-put-into-new": "解压 into a new sub-folder",
+    "extract": "Extract to",
+    "archive": {
+      "input_password": "Please input extraction password",
+      "incorrect_password": "Incorrect password",
+      "extract_header": "Extract {{path}} to..."
+    },
+    "copy_link": "复制 link",
+    "preview_page": "预览 page",
+    "down_link": "下载 link",
+    "encode_down_link": "Encode 下载 link",
+    "mkdir": "New 文件夹",
+    "input_dir_name": "Input folder name",
+    "new_file": "New 文件",
+    "input_filename": "Input filename",
+    "cancel_select": "取消 Select",
+    "offline_download": "Offline 下载",
+    "offline_download-tips": "One URL per line",
+    "delete_policy": {
+      "delete_on_upload_succeed": "删除 on 上传 succeed",
+      "delete_on_upload_failed": "删除 on 上传 failed",
+      "delete_never": "Never 删除",
+      "delete_always": "Always 删除"
+    },
+    "download": "下载",
+    "batch_download": "批量 下载",
+    "package_download": "Package 下载",
+    "package_download_disabled": "Package 下载 is disabled",
+    "send_aria2": "Send to Aria2",
+    "aria2_not_set": "Please set aria2 rpc url",
+    "send_aria2_success": "发送到 Aria2 successfully",
+    "pre_package_download-tips": "Using streamsaver in the browser instead of the server for package 下载 requires the corresponding storage to support cors, and the unsupported storage will fail.",
+    "package_download-tips": "下载ing, please wait don't close the page",
+    "playlist_download": "Playlist 下载",
+    "upload": "上传",
+    "local_settings": "Local 设置",
+    "recursive_move": "Recursive 移动",
+    "recursive_move_directory-tips": "Are you sure you want to move all files in the current folder and its subfolders to the specified folder?",
+    "remove_empty_directory": "Remove Empty 文件夹",
+    "remove_empty_directory-tips": "Are you sure to 删除 all its empty subfolders?",
+    "batch_rename": "批量 重命名",
+    "regex_rename": "Regex 重命名",
+    "sequential_renaming": "Sequential 重命名",
+    "regex_rename_preview": "Changed 文件s",
+    "regex_rename_preview_old_name": "Old 名称",
+    "regex_rename_preview_new_name": "New 名称",
+    "regular_rename": "Regular expression file renaming. Input the source file name regular expression on the first line, and input the new file name regular expression on the second line.",
+    "sequential_renaming_desc": "The new file name will have a numerical starting value appended to it, and it will be displayed sequentially by adding 1 to the starting value. Enter the new file name on the first line and the starting value on the second line.",
+    "compress": "压缩"
+  },
+  "upload": {
+    "add_as_task": "添加为任务",
+    "try_rapid": "Try rapid 上传",
+    "upload-tips": "Drag files here to 上传, or click:",
+    "release": "Release to 上传",
+    "no_files_drag": "No files were dragged in.",
+    "upload_files": "Choose 文件s",
+    "upload_folder": "Choose 文件夹",
+    "pending": "等待中",
+    "uploading": "上传ing",
+    "backending": "上传ing in the backend",
+    "success": "成功",
+    "error": "错误",
+    "back": "Back to 上传",
+    "clear_done": "清除已完成",
+    "chunk_upload": "Chunk 上传"
+  },
+  "local_settings": {
+    "aria2_rpc_url": "Aria2 RPC URL",
+    "aria2_rpc_secret": "Aria2 RPC secret",
+    "aria2_dir": "Aria2 下载 directory",
+    "show_folder_in_image_view": "Show folder in image view",
+    "show_folder_in_image_view_options": {
+      "top": "Top",
+      "bottom": "Bottom",
+      "none": "None"
+    },
+    "global_default_layout": "全局 default layout",
+    "global_default_layout_options": {
+      "list": "List View",
+      "grid": "Grid View",
+      "image": "Image View"
+    },
+    "position_of_header_navbar": "Position of header & nav bar",
+    "position_of_header_navbar_options": {
+      "static": "Normal",
+      "sticky": "Stick to top of page",
+      "only_navbar_sticky": "Only nav bar sticky"
+    },
+    "show_sidebar": "Show sidebar",
+    "show_sidebar_options": {
+      "none": "None",
+      "visible": "Visible"
+    },
+    "list_item_filename_overflow": "List item filename overflow",
+    "list_item_filename_overflow_options": {
+      "ellipsis": "Ellipsis",
+      "scrollable": "Scrollable",
+      "multi_line": "Multi-line"
+    },
+    "open_item_on_checkbox": "打开 item on Checkbox",
+    "open_item_on_checkbox_options": {
+      "direct": "Direct",
+      "dblclick": "Double click",
+      "disable_while_checked": "禁用 while checked"
+    }
+  },
+  "package_download": {
+    "current_status": "当前 状态",
+    "initializing": "Initializing",
+    "fetching_struct": "Fetching folder structure",
+    "fetching_struct_failed": "失败 to fetch folder structure",
+    "downloading": "下载ing files, don't close or refresh the page",
+    "failed": "失败 to package 下载",
+    "success": "下载 completed"
+  },
+  "footer": {
+    "powered_by": "由 AList 驱动",
+    "manage": "管理"
+  },
+  "search": {
+    "search": "搜索",
+    "no_result": "No result yet",
+    "scopes": {
+      "all": "All",
+      "folder": "文件夹",
+      "file": "文件"
+    }
+  },
+  "fetching_settings_failed": "失败 fetching 设置s: ",
+  "get_current_user_failed": "失败 get current user: ",
+  "Loading storage, please wait": "Loading storage, please wait",
+  "conflict_policy": {
+    "cancel_if_exists": "取消 if file exists",
+    "overwrite_existing": "Overwrite existing files",
+    "skip_existing": "Skip existing files"
+  }
+}

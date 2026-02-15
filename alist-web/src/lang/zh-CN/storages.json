@@ -1,0 +1,47 @@
+{
+  "common": {
+    "mount_path": "Mount 路径",
+    "mount_path-tips": "The path you want to mount to, it is unique and cannot be repeated",
+    "driver": "Driver",
+    "order": "Order",
+    "order-tips": "Use to sort",
+    "status": "状态",
+    "remark": "Remark",
+    "cache_expiration": "Cache Expiration",
+    "cache_expiration-tips": "The cache expiration time for this storage(minutes)",
+    "down_proxy_url": "下载 proxy URL",
+    "web_proxy": "Web proxy",
+    "webdav_policy": "WebDAV policy",
+    "proxy_range": "Proxy Range",
+    "proxy_range-tips": "Need to enable proxy",
+    "webdav_policys": {
+      "302_redirect": "302 redirect",
+      "use_proxy_url": "use proxy URL",
+      "native_proxy": "native proxy"
+    },
+    "order_by": "Order by",
+    "order_bys": {
+      "name": "名称",
+      "size": "大小",
+      "modified": "Modified"
+    },
+    "order_direction": "Order direction",
+    "order_directions": {
+      "asc": "Ascending",
+      "desc": "Descending"
+    },
+    "extract_folder": "Extract folder",
+    "extract_folders": {
+      "front": "Extract to front",
+      "back": "Extract to back"
+    },
+    "enable_sign": "启用 sign",
+    "disable_index": "禁用 index"
+  },
+  "other": {
+    "start_load_success": "Start loading",
+    "load_all": "Reload All",
+    "filter_by_driver": "Filter by driver",
+    "table_layout": "Table layout"
+  }
+}
