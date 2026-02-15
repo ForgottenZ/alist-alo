@@ -190,6 +190,7 @@ func _fs(g *gin.RouterGroup) {
 	a.Any("/meta", handles.FsArchiveMeta)
 	a.Any("/list", handles.FsArchiveList)
 	a.POST("/decompress", handles.FsArchiveDecompress)
+	a.POST("/compress", handles.FsArchiveCompress)
 }
 
 func _task(g *gin.RouterGroup) {

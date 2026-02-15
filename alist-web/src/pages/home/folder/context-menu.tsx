@@ -57,7 +57,7 @@ export const ContextMenu = () => {
               return !UserMethods.can(me(), index)
             }}
             onClick={() => {
-              bus.emit("tool", name === "compress" ? "package_download" : name)
+              bus.emit("tool", name)
             }}
           >
             <ItemContent name={name} />

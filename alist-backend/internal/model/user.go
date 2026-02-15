@@ -46,6 +46,7 @@ type User struct {
 	//   11: ftp/sftp write
 	//   12: can read archives
 	//   13: can decompress archives
+	//   14: can compress files/folders
 	Permission int32  `json:"permission"`
 	OtpSecret  string `json:"-"`
 	SsoID      string `json:"sso_id"` // unique by sso platform
@@ -135,6 +136,10 @@ func (u *User) CanReadArchives() bool {
 
 func (u *User) CanDecompress() bool {
 	return (u.Permission>>13)&1 == 1
+}
+
+func (u *User) CanCompress() bool {
+	return (u.Permission>>14)&1 == 1
 }
 
 func (u *User) JoinPath(reqPath string) (string, error) {
