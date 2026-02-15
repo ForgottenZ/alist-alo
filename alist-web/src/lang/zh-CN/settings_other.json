@@ -1,11 +1,11 @@
 {
   "aria2": "Aria2",
-  "aria2_version": "Aria2 Version:",
+  "aria2_version": "Aria2 版本:",
   "set_aria2": "Set aria2",
-  "copy_token": "Copy Token",
-  "reset_token": "Reset Token",
-  "reset_token_success": "Reset Token Successfully",
-  "unknown_type": "Unknown type",
+  "copy_token": "复制 令牌",
+  "reset_token": "重置 令牌",
+  "reset_token_success": "重置 令牌 成功fully",
+  "unknown_type": "未知类型",
   "set_qbit": "Set qBittorrent",
   "qbittorrent": "qBittorrent",
   "transmission": "Transmission",
@@ -16,5 +16,5 @@
   "set_pikpak": "Set PikPak",
   "thunder": "Thunder",
   "set_thunder": "Set Thunder",
-  "upload_behavior": "Upload defaults and footer"
+  "upload_behavior": "上传 defaults and footer"
 }

@@ -83,6 +83,19 @@ export const ContextMenu = () => {
           <ItemContent name="decompress" />
         </Item>
       </Show>
+      <Show when={haveSelected()}>
+        <Item
+          onClick={() => {
+            if (!canPackageDownload()) {
+              notify.warning(t("home.toolbar.package_download_disabled"))
+              return
+            }
+            bus.emit("tool", "compress")
+          }}
+        >
+          <ItemContent name="compress" />
+        </Item>
+      </Show>
       <Show when={oneChecked()}>
         <Item
           onClick={({ props }) => {

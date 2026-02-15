@@ -27,7 +27,7 @@ const defaultLang =
       lang.code.toLowerCase().split("-")[0] ===
       navigator.language.toLowerCase().split("-")[0],
   )?.code ||
-  "en"
+  "zh-CN"
 
 export let initialLang = localStorage.getItem("lang") ?? ""
 if (!initialLang || !languages.find((lang) => lang.code === initialLang)) {

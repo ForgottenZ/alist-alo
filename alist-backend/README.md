@@ -140,3 +140,56 @@ The `AList` is open-source software licensed under the AGPL-3.0 license.
 ---
 
 > [@GitHub](https://github.com/alist-org) · [@TelegramGroup](https://t.me/alist_chat) · [@Discord](https://discord.gg/F4ymsH4xv2)
+
+## Build from source (frontend + backend)
+
+> 以下步骤适用于本仓库（`alist-web` + `alist-backend` 同级目录）进行完整构建。
+
+### 1) Build frontend
+
+```bash
+cd ../alist-web
+pnpm install
+pnpm build
+```
+
+构建完成后会生成 `dist/`。
+
+### 2) Copy frontend assets into backend public dir
+
+```bash
+cd ..
+rm -rf alist-backend/public/dist
+cp -r alist-web/dist alist-backend/public/
+```
+
+### 3) Build backend binary
+
+```bash
+cd alist-backend
+appName="alist"
+builtAt="$(date +'%F %T %z')"
+goVersion=$(go version | sed 's/go version //')
+gitAuthor=$(git show -s --format='format:%aN <%ae>' HEAD)
+gitCommit=$(git log --pretty=format:"%h" -1)
+version="v.3.14.0.luobo"
+webVersion=$(wget -qO- -t1 -T2 "https://api.github.com/repos/alist-org/alist-web/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+ldflags="\
+-w -s \
+-X 'github.com/alist-org/alist/v3/internal/conf.BuiltAt=$builtAt' \
+-X 'github.com/alist-org/alist/v3/internal/conf.GoVersion=$goVersion' \
+-X 'github.com/alist-org/alist/v3/internal/conf.GitAuthor=$gitAuthor' \
+-X 'github.com/alist-org/alist/v3/internal/conf.GitCommit=$gitCommit' \
+-X 'github.com/alist-org/alist/v3/internal/conf.Version=$version' \
+-X 'github.com/alist-org/alist/v3/internal/conf.WebVersion=$webVersion' \
+"
+go build -ldflags="$ldflags" -o "$appName" .
+```
+
+### 4) Run
+
+```bash
+./alist server
+```
+
+如果是首次启动，可根据终端输出的账号密码进行登录，之后在管理后台调整配置。

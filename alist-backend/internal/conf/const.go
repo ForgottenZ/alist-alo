@@ -129,6 +129,10 @@ const (
 	StreamMaxClientUploadSpeed            = "max_client_upload_speed"
 	StreamMaxServerDownloadSpeed          = "max_server_download_speed"
 	StreamMaxServerUploadSpeed            = "max_server_upload_speed"
+	ChunkUploadSize                       = "chunk_upload_size"
+	DefaultTryRapidUpload                 = "default_try_rapid_upload"
+	DefaultChunkUploadEnabled             = "default_chunk_upload_enabled"
+	FooterText                            = "footer_text"
 )
 
 const (

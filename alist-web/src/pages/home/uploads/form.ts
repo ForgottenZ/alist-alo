@@ -1,3 +1,4 @@
+import { StreamUpload } from "./stream"
 import { password } from "~/store"
 import { EmptyResp } from "~/types"
 import { r } from "~/utils"
@@ -10,7 +11,12 @@ export const FormUpload: Upload = async (
   asTask = false,
   overwrite = false,
   rapid = false,
+  chunk = false,
+  chunkSize = 0,
 ): Promise<Error | undefined> => {
+  if (chunk) {
+    return StreamUpload(uploadPath, file, setUpload, asTask, overwrite, rapid, chunk, chunkSize)
+  }
   let oldTimestamp = new Date().valueOf()
   let oldLoaded = 0
   const form = new FormData()
