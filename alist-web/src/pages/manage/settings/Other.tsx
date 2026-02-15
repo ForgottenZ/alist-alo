@@ -30,7 +30,7 @@ const OtherSettings = () => {
   const [settings, setSettings] = createSignal<SettingItem[]>([])
   const [settingsLoading, settingsData] = useFetch(
     (): PResp<SettingItem[]> =>
-      r.get(`/admin/setting/list?groups=${Group.ARIA2},${Group.SINGLE}`),
+      r.get(`/admin/setting/list?groups=${Group.ARIA2},${Group.SINGLE},${Group.TRAFFIC}`),
   )
   const [setAria2Loading, setAria2] = useFetch(
     (): PResp<string> =>
@@ -68,6 +68,37 @@ const OtherSettings = () => {
         temp_dir: thunderTempDir(),
       }),
   )
+
+  const [saveWebSettingsLoading, saveWebSettings] = useFetch(
+    (): PResp<any> =>
+      r.post("/admin/setting/save", [
+        {
+          key: "web_default_try_rapid",
+          value:
+            settings().find((i) => i.key === "web_default_try_rapid")?.value ||
+            "false",
+        },
+        {
+          key: "web_default_chunk_upload",
+          value:
+            settings().find((i) => i.key === "web_default_chunk_upload")
+              ?.value || "false",
+        },
+        {
+          key: "web_footer_powered_by",
+          value:
+            settings().find((i) => i.key === "web_footer_powered_by")?.value ||
+            "Powered by AList",
+        },
+        {
+          key: "web_chunk_upload_part_size",
+          value:
+            settings().find((i) => i.key === "web_chunk_upload_part_size")
+              ?.value || "10485760",
+        },
+      ]),
+  )
+
   const refresh = async () => {
     const resp = await settingsData()
     handleResp(resp, (data) => {
@@ -246,6 +277,81 @@ const OtherSettings = () => {
       >
         {t("settings_other.set_thunder")}
       </Button>
+
+      <Heading my="$2">{t("settings_other.upload_defaults")}</Heading>
+      <SimpleGrid gap="$2" columns={{ "@initial": 1, "@md": 2 }}>
+        <Item
+          {...settings().find((i) => i.key === "web_default_try_rapid")!}
+          value={
+            settings().find((i) => i.key === "web_default_try_rapid")?.value ||
+            "false"
+          }
+          onChange={(str) => {
+            setSettings(
+              settings().map((i) =>
+                i.key === "web_default_try_rapid" ? { ...i, value: str } : i,
+              ),
+            )
+          }}
+        />
+        <Item
+          {...settings().find((i) => i.key === "web_default_chunk_upload")!}
+          value={
+            settings().find((i) => i.key === "web_default_chunk_upload")?.value ||
+            "false"
+          }
+          onChange={(str) => {
+            setSettings(
+              settings().map((i) =>
+                i.key === "web_default_chunk_upload" ? { ...i, value: str } : i,
+              ),
+            )
+          }}
+        />
+        <Item
+          {...settings().find((i) => i.key === "web_footer_powered_by")!}
+          value={
+            settings().find((i) => i.key === "web_footer_powered_by")?.value ||
+            "Powered by AList"
+          }
+          onChange={(str) => {
+            setSettings(
+              settings().map((i) =>
+                i.key === "web_footer_powered_by" ? { ...i, value: str } : i,
+              ),
+            )
+          }}
+        />
+        <Item
+          {...settings().find((i) => i.key === "web_chunk_upload_part_size")!}
+          value={
+            settings().find((i) => i.key === "web_chunk_upload_part_size")?.value ||
+            "10485760"
+          }
+          onChange={(str) => {
+            setSettings(
+              settings().map((i) =>
+                i.key === "web_chunk_upload_part_size"
+                  ? { ...i, value: str }
+                  : i,
+              ),
+            )
+          }}
+        />
+      </SimpleGrid>
+      <Button
+        my="$2"
+        loading={saveWebSettingsLoading()}
+        onClick={async () => {
+          const resp = await saveWebSettings()
+          handleResp(resp, () => {
+            notify.success(t("global.save_success"))
+          })
+        }}
+      >
+        {t("settings_other.save_upload_defaults")}
+      </Button>
+
       <Heading my="$2">{t("settings.token")}</Heading>
       <Input value={token()} readOnly />
       <HStack my="$2" spacing="$2">

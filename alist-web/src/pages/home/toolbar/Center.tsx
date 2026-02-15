@@ -41,13 +41,13 @@ export const Center = () => {
               backdropFilter: "blur(8px)",
             }}
           >
-            <For each={["rename", "move", "copy", "delete", "decompress"]}>
+            <For each={["rename", "move", "copy", "delete", "decompress", "compress"]}>
               {(name) => {
                 return (
                   <CenterIcon
                     name={name}
                     onClick={() => {
-                      bus.emit("tool", name)
+                      bus.emit("tool", name === "compress" ? "package_download" : name)
                     }}
                   />
                 )

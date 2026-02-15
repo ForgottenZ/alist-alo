@@ -140,3 +140,60 @@ The `AList` is open-source software licensed under the AGPL-3.0 license.
 ---
 
 > [@GitHub](https://github.com/alist-org) · [@TelegramGroup](https://t.me/alist_chat) · [@Discord](https://discord.gg/F4ymsH4xv2)
+
+## Build Guide (Frontend + Backend)
+
+This repository includes two projects: `alist-web` (frontend) and `alist-backend` (backend). Use the steps below to build a complete binary with your local frontend assets.
+
+### 1) Build frontend
+
+```bash
+cd ../alist-web
+pnpm install
+pnpm build
+```
+
+After build, copy generated `dist` into backend `public` directory:
+
+```bash
+rm -rf ../alist-backend/public/dist
+mkdir -p ../alist-backend/public
+cp -r dist ../alist-backend/public/
+```
+
+### 2) Build backend binary with ldflags
+
+```bash
+cd ../alist-backend
+appName="alist"
+builtAt="$(date +'%F %T %z')"
+goVersion=$(go version | sed 's/go version //')
+gitAuthor=$(git show -s --format='format:%aN <%ae>' HEAD)
+gitCommit=$(git log --pretty=format:"%h" -1)
+version="v.3.14.0.luobo"
+webVersion=$(wget -qO- -t1 -T2 "https://api.github.com/repos/alist-org/alist-web/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+ldflags="
+-w -s
+-X 'github.com/alist-org/alist/v3/internal/conf.BuiltAt=$builtAt'
+-X 'github.com/alist-org/alist/v3/internal/conf.GoVersion=$goVersion'
+-X 'github.com/alist-org/alist/v3/internal/conf.GitAuthor=$gitAuthor'
+-X 'github.com/alist-org/alist/v3/internal/conf.GitCommit=$gitCommit'
+-X 'github.com/alist-org/alist/v3/internal/conf.Version=$version'
+-X 'github.com/alist-org/alist/v3/internal/conf.WebVersion=$webVersion'
+"
+go build -ldflags="$ldflags" .
+```
+
+The output binary is `./alist` in `alist-backend`.
+
+### 3) Run
+
+```bash
+./alist server
+```
+
+If first run, initialize admin account with:
+
+```bash
+./alist admin set NEW_PASSWORD
+```
