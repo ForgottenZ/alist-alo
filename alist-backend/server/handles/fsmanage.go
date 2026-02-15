@@ -1,16 +1,22 @@
 package handles
 
 import (
+	"archive/zip"
 	"fmt"
-	"github.com/alist-org/alist/v3/internal/task"
 	"io"
+	"os"
 	stdpath "path"
+	"strings"
+	"time"
 
+	"github.com/alist-org/alist/v3/internal/conf"
 	"github.com/alist-org/alist/v3/internal/errs"
 	"github.com/alist-org/alist/v3/internal/fs"
 	"github.com/alist-org/alist/v3/internal/model"
 	"github.com/alist-org/alist/v3/internal/op"
 	"github.com/alist-org/alist/v3/internal/sign"
+	"github.com/alist-org/alist/v3/internal/stream"
+	"github.com/alist-org/alist/v3/internal/task"
 	"github.com/alist-org/alist/v3/pkg/generic"
 	"github.com/alist-org/alist/v3/pkg/utils"
 	"github.com/alist-org/alist/v3/server/common"
@@ -197,6 +203,13 @@ type RemoveReq struct {
 	Names []string `json:"names"`
 }
 
+type CompressReq struct {
+	Dir       string   `json:"dir"`
+	Names     []string `json:"names"`
+	DstName   string   `json:"dst_name"`
+	Overwrite bool     `json:"overwrite"`
+}
+
 func FsRemove(c *gin.Context) {
 	var req RemoveReq
 	if err := c.ShouldBind(&req); err != nil {
@@ -225,6 +238,143 @@ func FsRemove(c *gin.Context) {
 		}
 	}
 	//fs.ClearCache(req.Dir)
+	common.SuccessResp(c)
+}
+
+func appendPathToZip(ctx *gin.Context, zw *zip.Writer, srcPath string, zipPath string) error {
+	obj, err := fs.Get(ctx, srcPath, &fs.GetArgs{})
+	if err != nil {
+		return err
+	}
+	zipPath = strings.TrimPrefix(strings.ReplaceAll(zipPath, "\\", "/"), "/")
+	if obj.IsDir() {
+		if zipPath != "" {
+			if !strings.HasSuffix(zipPath, "/") {
+				zipPath += "/"
+			}
+			h := &zip.FileHeader{
+				Name:     zipPath,
+				Method:   zip.Store,
+				Modified: obj.ModTime(),
+			}
+			if _, err = zw.CreateHeader(h); err != nil {
+				return err
+			}
+		}
+		children, err := fs.List(ctx, srcPath, &fs.ListArgs{})
+		if err != nil {
+			return err
+		}
+		for _, child := range children {
+			if err = appendPathToZip(ctx, zw, stdpath.Join(srcPath, child.GetName()), stdpath.Join(zipPath, child.GetName())); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	link, _, err := fs.Link(ctx, srcPath, model.LinkArgs{IP: ctx.ClientIP(), Header: ctx.Request.Header, HttpReq: ctx.Request})
+	if err != nil {
+		return err
+	}
+	ss, err := stream.NewSeekableStream(stream.FileStream{Ctx: ctx, Obj: obj}, link)
+	if err != nil {
+		return err
+	}
+	defer ss.Close()
+	h := &zip.FileHeader{
+		Name:     zipPath,
+		Method:   zip.Deflate,
+		Modified: obj.ModTime(),
+	}
+	w, err := zw.CreateHeader(h)
+	if err != nil {
+		return err
+	}
+	_, err = utils.CopyWithBuffer(w, ss)
+	return err
+}
+
+func FsCompress(c *gin.Context) {
+	var req CompressReq
+	if err := c.ShouldBind(&req); err != nil {
+		common.ErrorResp(c, err, 400)
+		return
+	}
+	if len(req.Names) == 0 {
+		common.ErrorStrResp(c, "Empty file names", 400)
+		return
+	}
+	if strings.TrimSpace(req.DstName) == "" {
+		common.ErrorStrResp(c, "empty dst name", 400)
+		return
+	}
+	if !strings.HasSuffix(strings.ToLower(req.DstName), ".zip") {
+		req.DstName += ".zip"
+	}
+	user := c.MustGet("user").(*model.User)
+	if !user.CanWrite() {
+		common.ErrorResp(c, errs.PermissionDenied, 403)
+		return
+	}
+	reqDir, err := user.JoinPath(req.Dir)
+	if err != nil {
+		common.ErrorResp(c, err, 403)
+		return
+	}
+	dstPath := stdpath.Join(reqDir, req.DstName)
+	if !req.Overwrite {
+		if res, _ := fs.Get(c, dstPath, &fs.GetArgs{NoLog: true}); res != nil {
+			common.ErrorStrResp(c, fmt.Sprintf("file [%s] exists", req.DstName), 403)
+			return
+		}
+	}
+	if err = os.MkdirAll(conf.Conf.TempDir, 0o755); err != nil {
+		common.ErrorResp(c, err, 500)
+		return
+	}
+	tmpFile, err := os.CreateTemp(conf.Conf.TempDir, "alist-compress-*.zip")
+	if err != nil {
+		common.ErrorResp(c, err, 500)
+		return
+	}
+	tmpName := tmpFile.Name()
+	defer func() {
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpName)
+	}()
+	zw := zip.NewWriter(tmpFile)
+	for _, name := range req.Names {
+		if err = appendPathToZip(c, zw, stdpath.Join(reqDir, name), name); err != nil {
+			_ = zw.Close()
+			common.ErrorResp(c, err, 500)
+			return
+		}
+	}
+	if err = zw.Close(); err != nil {
+		common.ErrorResp(c, err, 500)
+		return
+	}
+	info, err := tmpFile.Stat()
+	if err != nil {
+		common.ErrorResp(c, err, 500)
+		return
+	}
+	if _, err = tmpFile.Seek(0, io.SeekStart); err != nil {
+		common.ErrorResp(c, err, 500)
+		return
+	}
+	if err = fs.PutDirectly(c, reqDir, &stream.FileStream{
+		Obj: &model.Object{
+			Name:     req.DstName,
+			Size:     info.Size(),
+			Modified: time.Now(),
+		},
+		Reader:   tmpFile,
+		Mimetype: "application/zip",
+	}, true); err != nil {
+		common.ErrorResp(c, err, 500)
+		return
+	}
 	common.SuccessResp(c)
 }
 

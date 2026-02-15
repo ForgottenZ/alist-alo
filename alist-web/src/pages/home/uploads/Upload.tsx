@@ -14,7 +14,7 @@ import {
 } from "@hope-ui/solid"
 import { createSignal, For, Show } from "solid-js"
 import { usePath, useRouter, useT } from "~/hooks"
-import { getMainColor } from "~/store"
+import { getMainColor, getSettingBool, getSettingNumber } from "~/store"
 import {
   RiDocumentFolderUploadFill,
   RiDocumentFileUploadFill,
@@ -77,7 +77,11 @@ const Upload = () => {
   const [uploading, setUploading] = createSignal(false)
   const [asTask, setAsTask] = createSignal(false)
   const [overwrite, setOverwrite] = createSignal(false)
-  const [rapid, setRapid] = createSignal(true)
+  const [rapid, setRapid] = createSignal(getSettingBool("web_default_try_rapid"))
+  const [chunkUpload, setChunkUpload] = createSignal(
+    getSettingBool("web_default_chunk_upload"),
+  )
+  const chunkSize = getSettingNumber("web_chunk_upload_part_size", 10485760)
   const [uploadFiles, setUploadFiles] = createStore<{
     uploads: UploadFileProps[]
   }>({
@@ -121,6 +125,8 @@ const Upload = () => {
         asTask(),
         overwrite(),
         rapid(),
+        chunkUpload(),
+        chunkSize,
       )
       if (!err) {
         setUpload(path, "status", "success")
@@ -302,6 +308,14 @@ const Upload = () => {
                 }}
               >
                 {t("home.upload.try_rapid")}
+              </Checkbox>
+              <Checkbox
+                checked={chunkUpload()}
+                onChange={() => {
+                  setChunkUpload(!chunkUpload())
+                }}
+              >
+                {t("home.upload.chunk_upload")}
               </Checkbox>
             </HStack>
           </Show>

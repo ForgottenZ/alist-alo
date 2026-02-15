@@ -3,10 +3,14 @@ package handles
 import (
 	"io"
 	"net/url"
+	"os"
 	stdpath "path"
+	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
+	"github.com/alist-org/alist/v3/internal/conf"
 	"github.com/alist-org/alist/v3/internal/fs"
 	"github.com/alist-org/alist/v3/internal/model"
 	"github.com/alist-org/alist/v3/internal/stream"
@@ -27,6 +31,137 @@ func getLastModified(c *gin.Context) time.Time {
 	return lastModified
 }
 
+var chunkUploadLocks sync.Map
+
+func getChunkUploadLock(uploadID string) *sync.Mutex {
+	lock, _ := chunkUploadLocks.LoadOrStore(uploadID, &sync.Mutex{})
+	return lock.(*sync.Mutex)
+}
+
+func cleanChunkUploadLock(uploadID string) {
+	chunkUploadLocks.Delete(uploadID)
+}
+
+func handleChunkUpload(c *gin.Context, path string, asTask bool, overwrite bool) {
+	chunkIndex, err := strconv.Atoi(c.GetHeader("Chunk-Index"))
+	if err != nil || chunkIndex < 0 {
+		common.ErrorStrResp(c, "invalid chunk index", 400)
+		return
+	}
+	totalChunks, err := strconv.Atoi(c.GetHeader("Total-Chunks"))
+	if err != nil || totalChunks <= 0 {
+		common.ErrorStrResp(c, "invalid total chunks", 400)
+		return
+	}
+	totalSize, err := strconv.ParseInt(c.GetHeader("Total-Size"), 10, 64)
+	if err != nil || totalSize < 0 {
+		common.ErrorStrResp(c, "invalid total size", 400)
+		return
+	}
+	uploadID := c.GetHeader("Upload-Id")
+	if uploadID == "" {
+		common.ErrorStrResp(c, "missing upload id", 400)
+		return
+	}
+
+	user := c.MustGet("user").(*model.User)
+	path, err = user.JoinPath(path)
+	if err != nil {
+		common.ErrorResp(c, err, 403)
+		return
+	}
+	if chunkIndex == 0 && !overwrite {
+		if res, _ := fs.Get(c, path, &fs.GetArgs{NoLog: true}); res != nil {
+			_, _ = utils.CopyWithBuffer(io.Discard, c.Request.Body)
+			common.ErrorStrResp(c, "file exists", 403)
+			return
+		}
+	}
+
+	tempDir := filepath.Join(conf.Conf.TempDir, "chunk_upload")
+	if err = os.MkdirAll(tempDir, 0o755); err != nil {
+		common.ErrorResp(c, err, 500)
+		return
+	}
+	tempPath := filepath.Join(tempDir, uploadID+".part")
+
+	lock := getChunkUploadLock(uploadID)
+	lock.Lock()
+	defer lock.Unlock()
+
+	if chunkIndex == 0 {
+		_ = os.Remove(tempPath)
+	}
+	f, err := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		common.ErrorResp(c, err, 500)
+		return
+	}
+	if _, err = io.Copy(f, c.Request.Body); err != nil {
+		_ = f.Close()
+		common.ErrorResp(c, err, 500)
+		return
+	}
+	_ = f.Close()
+
+	if chunkIndex < totalChunks-1 {
+		common.SuccessResp(c)
+		return
+	}
+
+	f, err = os.Open(tempPath)
+	if err != nil {
+		common.ErrorResp(c, err, 500)
+		return
+	}
+	defer func() {
+		_ = f.Close()
+		_ = os.Remove(tempPath)
+		cleanChunkUploadLock(uploadID)
+	}()
+
+	dir, name := stdpath.Split(path)
+	h := make(map[*utils.HashType]string)
+	if md5 := c.GetHeader("X-File-Md5"); md5 != "" {
+		h[utils.MD5] = md5
+	}
+	if sha1 := c.GetHeader("X-File-Sha1"); sha1 != "" {
+		h[utils.SHA1] = sha1
+	}
+	if sha256 := c.GetHeader("X-File-Sha256"); sha256 != "" {
+		h[utils.SHA256] = sha256
+	}
+	s := &stream.FileStream{
+		Obj: &model.Object{
+			Name:     name,
+			Size:     totalSize,
+			Modified: getLastModified(c),
+			HashInfo: utils.NewHashInfoByMap(h),
+		},
+		Reader:       f,
+		Mimetype:     c.GetHeader("Content-Type"),
+		WebPutAsTask: asTask,
+	}
+	if s.Mimetype == "" {
+		s.Mimetype = utils.GetMimeType(name)
+	}
+	var t task.TaskExtensionInfo
+	if asTask {
+		t, err = fs.PutAsTask(c, dir, s)
+	} else {
+		err = fs.PutDirectly(c, dir, s, true)
+	}
+	if err != nil {
+		common.ErrorResp(c, err, 500)
+		return
+	}
+	if t == nil {
+		common.SuccessResp(c)
+		return
+	}
+	common.SuccessResp(c, gin.H{"task": getTaskInfo(t)})
+}
+
 func FsStream(c *gin.Context) {
 	path := c.GetHeader("File-Path")
 	path, err := url.PathUnescape(path)
@@ -36,6 +171,10 @@ func FsStream(c *gin.Context) {
 	}
 	asTask := c.GetHeader("As-Task") == "true"
 	overwrite := c.GetHeader("Overwrite") != "false"
+	if c.GetHeader("Chunk-Index") != "" {
+		handleChunkUpload(c, path, asTask, overwrite)
+		return
+	}
 	user := c.MustGet("user").(*model.User)
 	path, err = user.JoinPath(path)
 	if err != nil {

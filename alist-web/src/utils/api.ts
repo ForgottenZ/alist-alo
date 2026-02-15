@@ -108,6 +108,15 @@ export const fsRemove = (dir: string, names: string[]): PEmptyResp => {
   return r.post("/fs/remove", { dir, names })
 }
 
+export const fsCompress = (
+  dir: string,
+  names: string[],
+  dst_name: string,
+  overwrite: boolean,
+): PEmptyResp => {
+  return r.post("/fs/compress", { dir, names, dst_name, overwrite })
+}
+
 export const fsRemoveEmptyDirectory = (src_dir: string): PEmptyResp => {
   return r.post("/fs/remove_empty_directory", { src_dir })
 }
