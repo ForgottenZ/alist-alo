@@ -49,7 +49,9 @@ export const StreamUpload: Upload = async (
   const enableChunked = chunked && file.size > chunkSize && chunkSize > 0
   if (enableChunked) {
     const totalChunks = Math.ceil(file.size / chunkSize)
-    const uploadId = `${uploadPath}-${file.size}-${file.lastModified}`
+    const uploadId = encodeURIComponent(
+      `${uploadPath}-${file.size}-${file.lastModified}`,
+    )
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
       const start = chunkIndex * chunkSize
       const end = Math.min(start + chunkSize, file.size)
