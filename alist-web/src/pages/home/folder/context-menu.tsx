@@ -19,13 +19,18 @@ import { isArchive } from "~/store/archive"
 
 const ItemContent = (props: { name: string }) => {
   const t = useT()
+  const operation = operations[props.name] ?? operations.download
+  const icon =
+    typeof operation.icon === "function"
+      ? operation.icon
+      : operations.download.icon
   return (
     <HStack spacing="$2">
       <Icon
-        p={operations[props.name].p ? "$1" : undefined}
-        as={operations[props.name].icon}
+        p={operation.p ? "$1" : undefined}
+        as={icon}
         boxSize="$7"
-        color={operations[props.name].color}
+        color={operation.color}
       />
       <Text>{t(`home.toolbar.${props.name}`)}</Text>
     </HStack>
@@ -64,6 +69,17 @@ export const ContextMenu = () => {
           </Item>
         )}
       </For>
+      <Item
+        hidden={() => {
+          const index = UserPermissions.findIndex((item) => item === "write")
+          return !UserMethods.can(me(), index)
+        }}
+        onClick={() => {
+          bus.emit("tool", "compress")
+        }}
+      >
+        <ItemContent name="compress" />
+      </Item>
       <Show when={oneChecked()}>
         <Item
           hidden={() => {

@@ -23,6 +23,7 @@ export const operations: Operations = {
   move: { icon: TbFileArrowRight, color: "$warning9" },
   delete: { icon: AiTwotoneDelete, color: "$danger9" },
   decompress: { icon: TbArchive, color: "$primary9" },
+  compress: { icon: TbArchive, color: "$primary9" },
   copy_link: { icon: TbLink, color: "$info9" },
   mkdir: { icon: CgFolderAdd, p: true },
   recursive_move: { icon: ImMoveUp, p: true },
