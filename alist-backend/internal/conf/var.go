@@ -9,7 +9,7 @@ var (
 	BuiltAt    string
 	GitAuthor  string
 	GitCommit  string
-	Version    string = "dev"
+	Version    string = "v.3.14.0.luobo"
 	WebVersion string
 )
 

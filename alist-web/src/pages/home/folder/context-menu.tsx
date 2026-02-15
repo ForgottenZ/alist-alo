@@ -49,7 +49,7 @@ export const ContextMenu = () => {
       theme={colorMode() !== "dark" ? "light" : "dark"}
       style="z-index: var(--hope-zIndices-popover)"
     >
-      <For each={["rename", "move", "copy", "delete"]}>
+      <For each={["rename", "move", "copy", "delete", "compress"]}>
         {(name) => (
           <Item
             hidden={() => {
@@ -57,7 +57,7 @@ export const ContextMenu = () => {
               return !UserMethods.can(me(), index)
             }}
             onClick={() => {
-              bus.emit("tool", name)
+              bus.emit("tool", name === "compress" ? "package_download" : name)
             }}
           >
             <ItemContent name={name} />

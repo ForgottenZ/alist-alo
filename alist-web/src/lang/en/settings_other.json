@@ -15,5 +15,7 @@
   "pikpak": "PikPak",
   "set_pikpak": "Set PikPak",
   "thunder": "Thunder",
-  "set_thunder": "Set Thunder"
+  "set_thunder": "Set Thunder",
+  "upload_defaults": "Upload defaults & footer",
+  "save_upload_defaults": "Save upload defaults & footer"
 }

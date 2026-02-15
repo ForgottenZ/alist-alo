@@ -45,6 +45,9 @@ const (
 	ForwardDirectLinkParams = "forward_direct_link_params"
 	IgnoreDirectLinkParams  = "ignore_direct_link_params"
 	WebauthnLoginEnabled    = "webauthn_login_enabled"
+	WebFooterPoweredBy      = "web_footer_powered_by"
+	WebDefaultTryRapid      = "web_default_try_rapid"
+	WebDefaultChunkUpload   = "web_default_chunk_upload"
 
 	// index
 	SearchIndex     = "search_index"
@@ -129,6 +132,7 @@ const (
 	StreamMaxClientUploadSpeed            = "max_client_upload_speed"
 	StreamMaxServerDownloadSpeed          = "max_server_download_speed"
 	StreamMaxServerUploadSpeed            = "max_server_upload_speed"
+	WebChunkUploadPartSize                = "web_chunk_upload_part_size"
 )
 
 const (
