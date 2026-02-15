@@ -194,6 +194,25 @@ export const fsArchiveDecompress = (
   })
 }
 
+
+export const fsArchiveCompress = (
+  src_dir: string,
+  dst_dir: string,
+  name: string[],
+  format: "zip" | "7z",
+  dst_name: string,
+  password = "",
+): PEmptyResp => {
+  return r.post("/fs/archive/compress", {
+    src_dir,
+    dst_dir,
+    name,
+    format,
+    dst_name,
+    password,
+  })
+}
+
 export const offlineDownload = (
   path: string,
   urls: string[],

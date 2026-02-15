@@ -32,8 +32,8 @@ func initUser() {
 				Role:     model.ADMIN,
 				BasePath: "/",
 				Authn:    "[]",
-				// 0(can see hidden) - 7(can remove) & 12(can read archives) - 13(can decompress archives)
-				Permission: 0x30FF,
+				// 0(can see hidden) - 7(can remove) & 12(can read archives) - 14(can compress files/folders)
+				Permission: 0x70FF,
 			}
 			if err := op.CreateUser(admin); err != nil {
 				panic(err)

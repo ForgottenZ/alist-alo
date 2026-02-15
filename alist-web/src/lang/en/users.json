@@ -13,7 +13,8 @@
     "ftp_read": "FTP read",
     "ftp_manage": "FTP manage",
     "read_archives": "Read archives",
-    "decompress": "Decompress"
+    "decompress": "Decompress",
+    "compress": "Compress"
   },
   "username": "Username",
   "password": "Password",
