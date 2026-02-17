@@ -377,7 +377,7 @@ func FsArchiveCompress(c *gin.Context) {
 		return
 	}
 	archivePath := filepath.Join(workDir, archiveName)
-	args := []string{"a", "-bd", "-t" + archiveFormat, archivePath}
+	args := []string{"a", "-bd", "-bso0", "-bsp0", "-mmt=1", "-mx=1", "-t" + archiveFormat, archivePath}
 	if req.Password != "" {
 		args = append(args, "-p"+req.Password)
 		if archiveFormat == "7z" {
