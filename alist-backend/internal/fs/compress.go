@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"mime"
-	"net/http"
 	"os"
 	"os/exec"
 	stdpath "path"
@@ -14,7 +13,6 @@ import (
 	"time"
 
 	"github.com/alist-org/alist/v3/internal/conf"
-	"github.com/alist-org/alist/v3/internal/driver"
 	"github.com/alist-org/alist/v3/internal/model"
 	"github.com/alist-org/alist/v3/internal/op"
 	"github.com/alist-org/alist/v3/internal/stream"
@@ -27,22 +25,19 @@ type ArchiveCompressTask struct {
 	task.TaskExtension
 	Status string `json:"-"`
 
-	srcStorage driver.Driver `json:"-"`
-	dstStorage driver.Driver `json:"-"`
-
-	srcDirActualPath string   `json:"src_dir"`
-	dstDirActualPath string   `json:"dst_dir"`
-	srcNames         []string `json:"src_names"`
-	format           string   `json:"format"`
-	password         string   `json:"password"`
-	dstName          string   `json:"dst_name"`
+	SrcDirPath string   `json:"src_dir"`
+	DstDirPath string   `json:"dst_dir"`
+	SrcNames   []string `json:"src_names"`
+	Format     string   `json:"format"`
+	Password   string   `json:"password"`
+	DstName    string   `json:"dst_name"`
 
 	SrcStorageMp string `json:"src_storage_mp"`
 	DstStorageMp string `json:"dst_storage_mp"`
 }
 
 func (t *ArchiveCompressTask) GetName() string {
-	return fmt.Sprintf("compress %v from [%s](%s) to [%s](%s) as %s", t.srcNames, t.SrcStorageMp, t.srcDirActualPath, t.DstStorageMp, t.dstDirActualPath, t.dstName)
+	return fmt.Sprintf("compress %v from [%s](%s) to [%s](%s) as %s", t.SrcNames, t.SrcStorageMp, t.SrcDirPath, t.DstStorageMp, t.DstDirPath, t.DstName)
 }
 
 func (t *ArchiveCompressTask) GetStatus() string {
@@ -61,33 +56,35 @@ func (t *ArchiveCompressTask) Run() error {
 		return err
 	}
 	defer os.RemoveAll(workDir)
-
 	inputDir := filepath.Join(workDir, "input")
 	if err = os.MkdirAll(inputDir, 0o755); err != nil {
 		return err
 	}
 
-	for _, name := range t.srcNames {
-		srcActualPath := stdpath.Join(t.srcDirActualPath, name)
-		if err = copyStoragePathToLocal(t.Ctx(), t.srcStorage, srcActualPath, filepath.Join(inputDir, filepath.Base(name))); err != nil {
-			return errors.WithMessagef(err, "failed to prepare source %s", srcActualPath)
+	for _, name := range t.SrcNames {
+		cleanName := strings.TrimPrefix(stdpath.Clean("/"+strings.TrimSpace(name)), "/")
+		if cleanName == "" {
+			continue
+		}
+		srcPath := stdpath.Join(t.SrcDirPath, cleanName)
+		if err = copyMountPathToLocal(t.Ctx(), srcPath, filepath.Join(inputDir, filepath.Base(cleanName))); err != nil {
+			return errors.WithMessagef(err, "failed to prepare source %s", srcPath)
 		}
 	}
 
 	t.Status = "compressing"
-	binary := "7z"
+	binary := "7zz"
 	if _, err = exec.LookPath(binary); err != nil {
-		binary = "7zz"
+		binary = "7z"
 	}
 	if _, err = exec.LookPath(binary); err != nil {
-		return errors.New("7z or 7zz is required on server")
+		return errors.New("7zz or 7z is required on server")
 	}
-
-	archivePath := filepath.Join(workDir, t.dstName)
-	args := []string{"a", "-bd", "-bso0", "-bsp0", "-mmt=1", "-mx=1", "-t" + t.format, archivePath}
-	if t.password != "" {
-		args = append(args, "-p"+t.password)
-		if t.format == "7z" {
+	archivePath := filepath.Join(workDir, t.DstName)
+	args := []string{"a", "-bd", "-bso0", "-bsp0", "-mmt=1", "-mx=1", "-t" + t.Format, archivePath}
+	if t.Password != "" {
+		args = append(args, "-p"+t.Password)
+		if t.Format == "7z" {
 			args = append(args, "-mhe=on")
 		}
 	}
@@ -105,12 +102,11 @@ func (t *ArchiveCompressTask) Run() error {
 	}
 
 	t.Status = "uploading"
-	if _, err = op.Get(t.Ctx(), t.dstStorage, t.dstDirActualPath); err != nil {
-		if mkErr := op.MakeDir(t.Ctx(), t.dstStorage, t.dstDirActualPath, true); mkErr != nil {
-			return errors.WithMessage(mkErr, "failed to prepare destination dir")
+	if _, err = Get(t.Ctx(), t.DstDirPath, &GetArgs{NoLog: true}); err != nil {
+		if err = MakeDir(t.Ctx(), t.DstDirPath, true); err != nil {
+			return errors.WithMessage(err, "failed to prepare destination dir")
 		}
 	}
-
 	archiveFile, err := os.Open(archivePath)
 	if err != nil {
 		return err
@@ -122,15 +118,15 @@ func (t *ArchiveCompressTask) Run() error {
 	}
 	t.SetTotalBytes(info.Size())
 	fileStream := &stream.FileStream{
-		Obj:      &model.Object{Name: t.dstName, Size: info.Size(), Modified: time.Now()},
+		Obj:      &model.Object{Name: t.DstName, Size: info.Size(), Modified: time.Now()},
 		Reader:   archiveFile,
-		Mimetype: mime.TypeByExtension(filepath.Ext(t.dstName)),
+		Mimetype: mime.TypeByExtension(filepath.Ext(t.DstName)),
 	}
-	return op.Put(t.Ctx(), t.dstStorage, t.dstDirActualPath, fileStream, t.SetProgress, true)
+	return PutDirectly(t.Ctx(), t.DstDirPath, fileStream, true)
 }
 
-func copyStoragePathToLocal(ctx context.Context, storage driver.Driver, srcPath, localPath string) error {
-	obj, err := op.Get(ctx, storage, srcPath)
+func copyMountPathToLocal(ctx context.Context, srcPath, localPath string) error {
+	obj, err := Get(ctx, srcPath, &GetArgs{NoLog: true})
 	if err != nil {
 		return err
 	}
@@ -138,12 +134,14 @@ func copyStoragePathToLocal(ctx context.Context, storage driver.Driver, srcPath,
 		if err = os.MkdirAll(localPath, 0o755); err != nil {
 			return err
 		}
-		children, err := op.List(ctx, storage, srcPath, model.ListArgs{})
+		children, err := List(ctx, srcPath, &ListArgs{NoLog: true})
 		if err != nil {
 			return err
 		}
 		for _, child := range children {
-			if err = copyStoragePathToLocal(ctx, storage, stdpath.Join(srcPath, child.GetName()), filepath.Join(localPath, child.GetName())); err != nil {
+			childSrc := stdpath.Join(srcPath, child.GetName())
+			childLocal := filepath.Join(localPath, child.GetName())
+			if err = copyMountPathToLocal(ctx, childSrc, childLocal); err != nil {
 				return err
 			}
 		}
@@ -152,7 +150,7 @@ func copyStoragePathToLocal(ctx context.Context, storage driver.Driver, srcPath,
 	if err = os.MkdirAll(filepath.Dir(localPath), 0o755); err != nil {
 		return err
 	}
-	link, file, err := op.Link(ctx, storage, srcPath, model.LinkArgs{Header: http.Header{}})
+	link, file, err := Link(ctx, srcPath, model.LinkArgs{})
 	if err != nil {
 		return err
 	}
@@ -180,27 +178,25 @@ type ArchiveCompressArgs struct {
 }
 
 func archiveCompress(ctx context.Context, srcDirPath, dstDirPath string, args ArchiveCompressArgs) (task.TaskExtensionInfo, error) {
-	srcStorage, srcDirActualPath, err := op.GetStorageAndActualPath(srcDirPath)
+	srcStorage, _, err := op.GetStorageAndActualPath(srcDirPath)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed get src storage")
 	}
-	dstStorage, dstDirActualPath, err := op.GetStorageAndActualPath(dstDirPath)
+	dstStorage, _, err := op.GetStorageAndActualPath(dstDirPath)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed get dst storage")
 	}
 	taskCreator, _ := ctx.Value("user").(*model.User)
 	t := &ArchiveCompressTask{
-		TaskExtension:    task.TaskExtension{Creator: taskCreator},
-		srcStorage:       srcStorage,
-		dstStorage:       dstStorage,
-		srcDirActualPath: srcDirActualPath,
-		dstDirActualPath: dstDirActualPath,
-		srcNames:         args.Names,
-		format:           args.Format,
-		password:         args.Password,
-		dstName:          args.DstName,
-		SrcStorageMp:     srcStorage.GetStorage().MountPath,
-		DstStorageMp:     dstStorage.GetStorage().MountPath,
+		TaskExtension: task.TaskExtension{Creator: taskCreator},
+		SrcDirPath:    srcDirPath,
+		DstDirPath:    dstDirPath,
+		SrcNames:      args.Names,
+		Format:        args.Format,
+		Password:      args.Password,
+		DstName:       args.DstName,
+		SrcStorageMp:  srcStorage.GetStorage().MountPath,
+		DstStorageMp:  dstStorage.GetStorage().MountPath,
 	}
 	ArchiveCompressTaskManager.Add(t)
 	return t, nil
