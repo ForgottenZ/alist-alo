@@ -45,4 +45,8 @@ func InitTaskManager() {
 	op.RegisterSettingChangingCallback(func() {
 		fs.ArchiveContentUploadTaskManager.SetWorkersNumActive(taskFilterNegative(setting.GetInt(conf.TaskDecompressUploadThreadsNum, conf.Conf.Tasks.DecompressUpload.Workers)))
 	})
+	fs.ArchiveCompressTaskManager = tache.NewManager[*fs.ArchiveCompressTask](tache.WithWorks(setting.GetInt(conf.TaskCopyThreadsNum, conf.Conf.Tasks.Copy.Workers)), tache.WithMaxRetry(conf.Conf.Tasks.Copy.MaxRetry))
+	op.RegisterSettingChangingCallback(func() {
+		fs.ArchiveCompressTaskManager.SetWorkersNumActive(taskFilterNegative(setting.GetInt(conf.TaskCopyThreadsNum, conf.Conf.Tasks.Copy.Workers)))
+	})
 }

@@ -350,124 +350,19 @@ func FsArchiveCompress(c *gin.Context) {
 		common.ErrorResp(c, err, 403)
 		return
 	}
-	workDir, err := os.MkdirTemp(conf.Conf.TempDir, "compress-*")
-	if err != nil {
-		common.ErrorResp(c, err, 500)
-		return
-	}
-	defer os.RemoveAll(workDir)
-	inputDir := filepath.Join(workDir, "input")
-	if err = os.MkdirAll(inputDir, 0o755); err != nil {
-		common.ErrorResp(c, err, 500)
-		return
-	}
-	for _, name := range req.Name {
-		srcPath := stdpath.Join(srcDir, name)
-		if err = copyMountPathToLocal(c, srcPath, filepath.Join(inputDir, filepath.Base(name))); err != nil {
-			common.ErrorResp(c, err, 500)
-			return
-		}
-	}
-	binary := "7z"
-	if _, err = exec.LookPath(binary); err != nil {
-		binary = "7zz"
-	}
-	if _, err = exec.LookPath(binary); err != nil {
-		common.ErrorStrResp(c, "7z or 7zz is required on server", 500)
-		return
-	}
-	archivePath := filepath.Join(workDir, archiveName)
-	args := []string{"a", "-bd", "-t" + archiveFormat, archivePath}
-	if req.Password != "" {
-		args = append(args, "-p"+req.Password)
-		if archiveFormat == "7z" {
-			args = append(args, "-mhe=on")
-		}
-	}
-	entries, err := os.ReadDir(inputDir)
-	if err != nil {
-		common.ErrorResp(c, err, 500)
-		return
-	}
-	for _, e := range entries {
-		args = append(args, e.Name())
-	}
-	cmd := exec.CommandContext(c, binary, args...)
-	cmd.Dir = inputDir
-	if output, err := cmd.CombinedOutput(); err != nil {
-		common.ErrorStrResp(c, fmt.Sprintf("compress failed: %s", string(output)), 500)
-		return
-	}
-	archiveFile, err := os.Open(archivePath)
-	if err != nil {
-		common.ErrorResp(c, err, 500)
-		return
-	}
-	info, err := archiveFile.Stat()
-	if err != nil {
-		_ = archiveFile.Close()
-		common.ErrorResp(c, err, 500)
-		return
-	}
-	fileStream := &stream.FileStream{
-		Obj:      &model.Object{Name: archiveName, Size: info.Size(), Modified: time.Now()},
-		Reader:   archiveFile,
-		Mimetype: mime.TypeByExtension(filepath.Ext(archiveName)),
-	}
-	fileStream.Closers.Add(archiveFile)
-	if err = fs.PutDirectly(c, dstDir, fileStream, true); err != nil {
-		common.ErrorResp(c, err, 500)
-		return
-	}
-	common.SuccessResp(c)
-}
-
-func copyMountPathToLocal(ctx *gin.Context, srcPath, localPath string) error {
-	obj, err := fs.Get(ctx, srcPath, &fs.GetArgs{})
-	if err != nil {
-		return err
-	}
-	if obj.IsDir() {
-		if err = os.MkdirAll(localPath, 0o755); err != nil {
-			return err
-		}
-		children, err := fs.List(ctx, srcPath, &fs.ListArgs{})
-		if err != nil {
-			return err
-		}
-		for _, child := range children {
-			if err = copyMountPathToLocal(ctx, stdpath.Join(srcPath, child.GetName()), filepath.Join(localPath, child.GetName())); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	if err = os.MkdirAll(filepath.Dir(localPath), 0o755); err != nil {
-		return err
-	}
-	link, file, err := fs.Link(ctx, srcPath, model.LinkArgs{
-		Header:  ctx.Request.Header,
-		Type:    ctx.Query("type"),
-		HttpReq: ctx.Request,
+	t, err := fs.ArchiveCompress(c, srcDir, dstDir, fs.ArchiveCompressArgs{
+		Names:    req.Name,
+		Format:   archiveFormat,
+		Password: req.Password,
+		DstName:  archiveName,
 	})
 	if err != nil {
-		return err
+		common.ErrorResp(c, err, 500)
+		return
 	}
-	ss, err := stream.NewSeekableStream(stream.FileStream{
-		Ctx: ctx,
-		Obj: file,
-	}, link)
-	if err != nil {
-		return err
-	}
-	defer ss.Close()
-	out, err := os.Create(localPath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	_, err = io.Copy(out, ss)
-	return err
+	common.SuccessResp(c, gin.H{
+		"task": getTaskInfo(t),
+	})
 }
 
 func ArchiveDown(c *gin.Context) {
