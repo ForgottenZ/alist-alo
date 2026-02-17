@@ -6,6 +6,8 @@ export interface UploadFileProps {
   progress: number
   speed: number
   status: Status
+  currentChunk?: number
+  totalChunks?: number
   msg?: string
 }
 export const StatusBadge = {
