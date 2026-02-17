@@ -49,10 +49,12 @@ export const StreamUpload: Upload = async (
   const enableChunked = chunked && file.size > chunkSize && chunkSize > 0
   if (enableChunked) {
     const totalChunks = Math.ceil(file.size / chunkSize)
+    setUpload("totalChunks", totalChunks)
     const uploadId = encodeURIComponent(
       `${uploadPath}-${file.size}-${file.lastModified}`,
     )
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+      setUpload("currentChunk", chunkIndex + 1)
       const start = chunkIndex * chunkSize
       const end = Math.min(start + chunkSize, file.size)
       const chunk = file.slice(start, end)
@@ -80,6 +82,9 @@ export const StreamUpload: Upload = async (
     setUpload("status", "backending")
     return
   }
+
+  setUpload("currentChunk", undefined)
+  setUpload("totalChunks", undefined)
 
   const resp: EmptyResp = await r.put("/fs/put", file, {
     headers,
