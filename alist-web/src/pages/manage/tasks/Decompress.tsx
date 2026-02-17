@@ -2,6 +2,7 @@ import { useManageTitle } from "~/hooks"
 import { VStack } from "@hope-ui/solid"
 import { TypeTasks } from "~/pages/manage/tasks/Tasks"
 import {
+  getCompressNameAnalyzer,
   getDecompressNameAnalyzer,
   getDecompressUploadNameAnalyzer,
 } from "~/pages/manage/tasks/helper"
@@ -20,6 +21,7 @@ const Decompress = () => {
         canRetry
         nameAnalyzer={getDecompressUploadNameAnalyzer()}
       />
+      <TypeTasks type="compress" canRetry nameAnalyzer={getCompressNameAnalyzer()} />
     </VStack>
   )
 }
