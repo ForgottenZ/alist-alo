@@ -128,5 +128,6 @@
   "web_default_try_rapid": "Default try rapid",
   "web_default_chunk_upload": "Default chunk upload",
   "web_footer_powered_by": "Footer powered by text",
+  "web_footer_powered_by_href": "Footer powered by link",
   "web_chunk_upload_part_size": "Web chunk upload part size (bytes)"
 }
