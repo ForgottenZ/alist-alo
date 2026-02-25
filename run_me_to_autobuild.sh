@@ -61,7 +61,7 @@ if $UPDATE; then
   # 复制 ./src/* 到 alist-web（包含目录/文件），尽量保留属性
   # 等价于从上层目录执行：cp -a ./src/* {dir}/alist-web/
   shopt -s dotglob nullglob
-  cp -a "${SRC_DIR}/"* "${WEB_DIR}/"
+  cp -a "${SRC_DIR}/"* "${WEB_DIR}/src"
   shopt -u dotglob nullglob
 
   log "Run i18n: node ${WEB_DIR}/scripts/i18n.mjs"
@@ -86,9 +86,9 @@ cd "$BACKEND_DIR"
 appName="alist"
 builtAt="$(date +'%F %T %z')"
 goVersion="$(go version | sed 's/go version //')"
-gitAuthor="$(git show -s --format='format:%aN <%ae>' HEAD)"
-gitCommit="$(git log --pretty=format:"%h" -1)"
-version="$(git describe --long --tags --dirty --always)"
+gitAuthor="AA"
+gitCommit="bb"
+version="cc"
 webVersion="$(wget -qO- -t1 -T2 "https://api.github.com/repos/alist-org/alist-web/releases/latest" \
   | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')"
 
