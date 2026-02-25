@@ -87,6 +87,7 @@ const OtherSettings = () => {
         findSetting("web_default_try_rapid", "false"),
         findSetting("web_default_chunk_upload", "false"),
         findSetting("web_footer_powered_by", "Powered by AList"),
+        findSetting("web_footer_powered_by_href", "https://github.com/alist-org/alist"),
         {
           ...findSetting("web_chunk_upload_part_size", "10485760"),
           type: Type.Number,
@@ -120,7 +121,35 @@ const OtherSettings = () => {
       setThunderTempDir(
         data.find((i) => i.key === "thunder_temp_dir")?.value || "",
       )
-      setSettings(data)
+      const ensure = (
+        key: string,
+        value: string,
+        type: Type,
+        group: Group,
+        flag: Flag,
+      ): SettingItem => {
+        return (
+          data.find((i) => i.key === key) || {
+            key,
+            value,
+            type,
+            group,
+            flag,
+            help: "",
+            options: "",
+          }
+        )
+      }
+      setSettings([
+        ...data,
+        ensure(
+          "web_footer_powered_by_href",
+          "https://github.com/alist-org/alist",
+          Type.String,
+          Group.SINGLE,
+          Flag.PUBLIC,
+        ),
+      ].filter((item, index, arr) => arr.findIndex((i) => i.key === item.key) === index))
     })
   }
   refresh()
@@ -316,6 +345,22 @@ const OtherSettings = () => {
             setSettings(
               settings().map((i) =>
                 i.key === "web_footer_powered_by" ? { ...i, value: str } : i,
+              ),
+            )
+          }}
+        />
+        <Item
+          {...settings().find((i) => i.key === "web_footer_powered_by_href")!}
+          value={
+            settings().find((i) => i.key === "web_footer_powered_by_href")
+              ?.value || "https://github.com/alist-org/alist"
+          }
+          onChange={(str) => {
+            setSettings(
+              settings().map((i) =>
+                i.key === "web_footer_powered_by_href"
+                  ? { ...i, value: str }
+                  : i,
               ),
             )
           }}

@@ -2,18 +2,10 @@ package handles
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
-	"mime"
 	"net/url"
-	"os"
-	"os/exec"
 	stdpath "path"
-	"path/filepath"
 	"strings"
-	"time"
 
-	"github.com/alist-org/alist/v3/internal/stream"
 	"github.com/alist-org/alist/v3/internal/task"
 
 	"github.com/alist-org/alist/v3/internal/archive/tool"

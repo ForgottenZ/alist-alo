@@ -46,6 +46,7 @@ const (
 	IgnoreDirectLinkParams  = "ignore_direct_link_params"
 	WebauthnLoginEnabled    = "webauthn_login_enabled"
 	WebFooterPoweredBy      = "web_footer_powered_by"
+	WebFooterPoweredByHref  = "web_footer_powered_by_href"
 	WebDefaultTryRapid      = "web_default_try_rapid"
 	WebDefaultChunkUpload   = "web_default_chunk_upload"
 

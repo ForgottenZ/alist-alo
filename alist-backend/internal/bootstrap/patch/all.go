@@ -36,7 +36,7 @@ var UpgradePatches = []VersionPatches{
 	{
 		Version: "v3.42.0",
 		Patches: []func(){
-			v3_42_0.SetWebChunkUploadPartSizePublic,
+			v3_42_0.PatchWebUISettings,
 		},
 	},
 }
