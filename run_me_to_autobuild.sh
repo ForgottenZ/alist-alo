@@ -64,8 +64,8 @@ if $UPDATE; then
   cp -a "${SRC_DIR}/"* "${WEB_DIR}/src"
   shopt -u dotglob nullglob
 
-  log "Run i18n: node ${WEB_DIR}/scripts/i18n.mjs"
-  node "${WEB_DIR}/scripts/i18n.mjs"
+  log "Run i18n: (cd ${WEB_DIR} && node scripts/i18n.mjs)"
+  ( cd "$WEB_DIR" && node "./scripts/i18n.mjs" )
 fi
 
 # 1) 在 {dir}/alist-web 执行 pnpm install && pnpm build
