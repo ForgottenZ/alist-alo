@@ -75,10 +75,9 @@ pnpm install
 pnpm build
 
 # 2) 复制 {dir}/alist-web/dist/* 到 {dir}/alist-backend/public/
-log "Copy web dist to backend public: ${WEB_DIR}/dist/* -> ${BACKEND_PUBLIC_DIR}/"
-mkdir -p "$BACKEND_PUBLIC_DIR"
-rm -rf "${BACKEND_PUBLIC_DIR:?}/"*
-cp -a "${WEB_DIR}/dist/." "$BACKEND_PUBLIC_DIR/"
+log "Copy web dist to backend public: ${WEB_DIR}/dist/* -> ${BACKEND_PUBLIC_DIR}/dist"
+mkdir -p "$BACKEND_PUBLIC_DIR/dist"
+cp -a "${WEB_DIR}/dist/." "$BACKEND_PUBLIC_DIR/dist"
 
 # 3) 在 {dir}/alist-backend 执行 go build（带 ldflags），然后 ./alist server
 log "Build backend: (cd ${BACKEND_DIR} && go build ...)"
