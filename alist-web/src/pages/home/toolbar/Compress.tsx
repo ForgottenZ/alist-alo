@@ -1,8 +1,8 @@
-import { createDisclosure, HStack, Input, Select, Text, VStack } from "@hope-ui/solid"
+import { createDisclosure, HStack, Input, Text, VStack } from "@hope-ui/solid"
 import { useFetch, usePath, useRouter, useT } from "~/hooks"
 import { bus, fsArchiveCompress, handleRespWithNotifySuccess } from "~/utils"
 import { batch, createMemo, createSignal, onCleanup } from "solid-js"
-import { ModalFolderChoose } from "~/components"
+import { ModalFolderChoose, SelectWrapper } from "~/components"
 import { selectedObjs } from "~/store"
 
 export const Compress = () => {
@@ -78,15 +78,16 @@ export const Compress = () => {
         </HStack>
         <HStack width="100%" spacing="$1">
           <Text size="sm">Format</Text>
-          <Select
-            size="sm"
+          <SelectWrapper
             value={format()}
-            onChange={(e: any) => setFormat(e.target.value as "zip" | "7z")}
-            flexGrow="1"
-          >
-            <option value="7z">7z</option>
-            <option value="zip">zip</option>
-          </Select>
+            onChange={(v) => setFormat(v as "zip" | "7z")}
+            options={[
+              { label: "7z", value: "7z" },
+              { label: "zip", value: "zip" },
+            ]}
+            size="sm"
+            w="$full"
+          />
         </HStack>
         <HStack width="100%" spacing="$1">
           <Text size="sm" css={{ whiteSpace: "nowrap" }}>

@@ -96,3 +96,15 @@ export const getDecompressUploadNameAnalyzer = (): TaskNameAnalyzer => {
     },
   }
 }
+
+export const getCompressNameAnalyzer = (): TaskNameAnalyzer => {
+  const t = useT()
+  return {
+    regex: /^compress (\[.*\]) from \[(.+)]\((.+)\) to \[(.+)]\((.+)\) as (.+)$/,
+    title: (matches) => matches[6],
+    attrs: {
+      [t(`tasks.attr.decompress.src`)]: (matches) => getPath(matches[2], matches[3]),
+      [t(`tasks.attr.decompress.dst`)]: (matches) => getPath(matches[4], matches[5]),
+    },
+  }
+}
