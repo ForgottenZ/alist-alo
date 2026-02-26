@@ -65,6 +65,7 @@ fi
 # 1) 在 {dir}/alist-web 执行 pnpm install && pnpm build
 log "Build web: (cd ${WEB_DIR} && pnpm install && pnpm build)"
 cd "$WEB_DIR"
+export HUSKY=0
 pnpm install
 pnpm build
 
@@ -77,7 +78,6 @@ cp -a "${WEB_DIR}/dist/." "$BACKEND_PUBLIC_DIR/dist"
 log "Build backend: (cd ${BACKEND_DIR} && go build ...)"
 cd "$BACKEND_DIR"
 
-appName="alist"
 builtAt="$(date +'%F %T %z')"
 goVersion="$(go version | sed 's/go version //')"
 gitAuthor="AA"
@@ -87,16 +87,20 @@ webVersion="$(wget -qO- -t1 -T2 "https://api.github.com/repos/alist-org/alist-we
   | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')"
 
 ldflags="\
--w -s \
--X 'github.com/alist-org/alist/v3/internal/conf.BuiltAt=$builtAt' \
--X 'github.com/alist-org/alist/v3/internal/conf.GoVersion=$goVersion' \
--X 'github.com/alist-org/alist/v3/internal/conf.GitAuthor=$gitAuthor' \
--X 'github.com/alist-org/alist/v3/internal/conf.GitCommit=$gitCommit' \
--X 'github.com/alist-org/alist/v3/internal/conf.Version=$version' \
--X 'github.com/alist-org/alist/v3/internal/conf.WebVersion=$webVersion' \
+-s -w \
+-X github.com/alist-org/alist/v3/internal/conf.BuiltAt=${builtAt} \
+-X github.com/alist-org/alist/v3/internal/conf.GoVersion=${goVersion} \
+-X github.com/alist-org/alist/v3/internal/conf.GitAuthor=${gitAuthor} \
+-X github.com/alist-org/alist/v3/internal/conf.GitCommit=${gitCommit} \
+-X github.com/alist-org/alist/v3/internal/conf.Version=${version} \
+-X github.com/alist-org/alist/v3/internal/conf.WebVersion=${webVersion} \
+-linkmode external -extldflags=-static \
 "
 
-go build -ldflags="$ldflags" -o "$appName" .
+# 4) 构建（输出名你要用 alist 或 $appName 都行）
+appName="${appName:-alist}"
+go build -trimpath -ldflags="$ldflags" -o "$appName" .
 
-log "Run: ${BACKEND_DIR}/./${appName} server ${SERVER_ARGS[*]-}"
-exec "./${appName}" server "${SERVER_ARGS[@]}"
+
+# log "Run: ${BACKEND_DIR}/./${appName} server ${SERVER_ARGS[*]-}"
+# exec "./${appName}" server "${SERVER_ARGS[@]}"
