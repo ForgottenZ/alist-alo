@@ -23,7 +23,7 @@ RUN apk update && \
         /opt/aria2/.aria2/tracker.sh ; \
     rm -rf /var/cache/apk/*
 
-COPY --chmod=755 bin/alist ./alist
+COPY --chmod=755 alist /opt/alist/alist
 COPY --chmod=755 entrypoint.sh /entrypoint.sh
 RUN /entrypoint.sh version
 
