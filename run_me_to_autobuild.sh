@@ -49,14 +49,8 @@ log() { echo "[$(date +'%F %T')] $*"; }
 
 if $UPDATE; then
   # 去到 {dir} 的上层文件夹，复制 ./src/* 到 {dir}/alist-web/ 下，然后执行 i18n
-  PARENT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-  SRC_DIR="${PARENT_DIR}/src"
 
-  log "UPDATE mode: sync ${SRC_DIR}/* -> ${WEB_DIR}/"
-  if [[ ! -d "$SRC_DIR" ]]; then
-    echo "[ERROR] src dir not found: ${SRC_DIR}" >&2
-    exit 1
-  fi
+  log "UPDATE mode: sync ${SCRIPT_DIR}/src/* -> ${WEB_DIR}/src"
   mkdir -p "$WEB_DIR"
   # 复制 ./src/* 到 alist-web（包含目录/文件），尽量保留属性
   # 等价于从上层目录执行：cp -a ./src/* {dir}/alist-web/
