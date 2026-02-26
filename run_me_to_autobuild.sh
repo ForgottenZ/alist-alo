@@ -94,7 +94,8 @@ ldflags="\
 -X github.com/alist-org/alist/v3/internal/conf.GitCommit=${gitCommit} \
 -X github.com/alist-org/alist/v3/internal/conf.Version=${version} \
 -X github.com/alist-org/alist/v3/internal/conf.WebVersion=${webVersion} \
--linkmode external -extldflags=-static \
+-linkmode external \
+-extldflags '-static' \
 "
 
 # 4) 构建（输出名你要用 alist 或 $appName 都行）
