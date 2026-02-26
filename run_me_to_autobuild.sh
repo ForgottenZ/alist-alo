@@ -89,19 +89,20 @@ version="cc"
 webVersion="$(wget -qO- -t1 -T2 "https://api.github.com/repos/alist-org/alist-web/releases/latest" \
   | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')"
 
-ldflags="\
--s -w \
--X github.com/alist-org/alist/v3/internal/conf.BuiltAt=${builtAt} \
--X github.com/alist-org/alist/v3/internal/conf.GoVersion=${goVersion} \
--X github.com/alist-org/alist/v3/internal/conf.GitAuthor=${gitAuthor} \
--X github.com/alist-org/alist/v3/internal/conf.GitCommit=${gitCommit} \
--X github.com/alist-org/alist/v3/internal/conf.Version=${version} \
--X github.com/alist-org/alist/v3/internal/conf.WebVersion=${webVersion} \
-"
+#ldflags="\
+#-s -w \
+#-X github.com/alist-org/alist/v3/internal/conf.BuiltAt=${builtAt} \
+#-X github.com/alist-org/alist/v3/internal/conf.GoVersion=${goVersion} \
+#-X github.com/alist-org/alist/v3/internal/conf.GitAuthor=${gitAuthor} \
+#-X github.com/alist-org/alist/v3/internal/conf.GitCommit=${gitCommit} \
+#-X github.com/alist-org/alist/v3/internal/conf.Version=${version} \
+#-X github.com/alist-org/alist/v3/internal/conf.WebVersion=${webVersion} \
+#"
 
 # 4) 构建（输出名你要用 alist 或 $appName 都行）
 appName="${appName:-alist}"
-go build -trimpath -ldflags="$ldflags" -o "$appName" .
+#go build -trimpath -ldflags="$ldflags" -o "$appName" .
+go build -trimpath -ldflags "-s -w -linkmode external -extldflags '-static' -X github.com/alist-org/alist/v3/internal/conf.BuiltAt=${builtAt} -X github.com/alist-org/alist/v3/internal/conf.GoVersion=${goVersion} -X github.com/alist-org/alist/v3/internal/conf.GitAuthor=${gitAuthor} -X github.com/alist-org/alist/v3/internal/conf.GitCommit=${gitCommit} -X github.com/alist-org/alist/v3/internal/conf.Version=${version} -X github.com/alist-org/alist/v3/internal/conf.WebVersion=${webVersion}" -o "$appName" .
 
 
 # log "Run: ${BACKEND_DIR}/./${appName} server ${SERVER_ARGS[*]-}"
