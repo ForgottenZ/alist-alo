@@ -61,7 +61,7 @@ if $UPDATE; then
   # 复制 ./src/* 到 alist-web（包含目录/文件），尽量保留属性
   # 等价于从上层目录执行：cp -a ./src/* {dir}/alist-web/
   shopt -s dotglob nullglob
-  cp -a "${SRC_DIR}/"* "${WEB_DIR}/src"
+  cp -a "${SCRIPT_DIR}/src/"* "${WEB_DIR}/src"
   shopt -u dotglob nullglob
 
   log "Run i18n: (cd ${WEB_DIR} && node scripts/i18n.mjs)"
