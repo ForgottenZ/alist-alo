@@ -31,6 +31,7 @@ for arg in "$@"; do
 done
 
 # 基础依赖检查
+apt-get update && apt-get install -y musl-tools
 need_cmd bash
 need_cmd pnpm
 need_cmd node
@@ -77,7 +78,9 @@ cp -a "${WEB_DIR}/dist/." "$BACKEND_PUBLIC_DIR/dist"
 # 3) 在 {dir}/alist-backend 执行 go build（带 ldflags），然后 ./alist server
 log "Build backend: (cd ${BACKEND_DIR} && go build ...)"
 cd "$BACKEND_DIR"
-
+export GOOS=linux GOARCH=amd64
+export CGO_ENABLED=1
+export CC=x86_64-linux-musl-gcc
 builtAt="$(date +'%F %T %z')"
 goVersion="$(go version | sed 's/go version //')"
 gitAuthor="AA"
@@ -94,8 +97,6 @@ ldflags="\
 -X github.com/alist-org/alist/v3/internal/conf.GitCommit=${gitCommit} \
 -X github.com/alist-org/alist/v3/internal/conf.Version=${version} \
 -X github.com/alist-org/alist/v3/internal/conf.WebVersion=${webVersion} \
--linkmode external \
--extldflags '-static' \
 "
 
 # 4) 构建（输出名你要用 alist 或 $appName 都行）
