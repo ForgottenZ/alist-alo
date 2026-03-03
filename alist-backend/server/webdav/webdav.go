@@ -7,15 +7,22 @@ package webdav // import "golang.org/x/net/webdav"
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/alist-org/alist/v3/internal/conf"
 	"github.com/alist-org/alist/v3/internal/stream"
 
 	"github.com/alist-org/alist/v3/internal/errs"
@@ -25,6 +32,23 @@ import (
 	"github.com/alist-org/alist/v3/pkg/utils"
 	"github.com/alist-org/alist/v3/server/common"
 )
+
+var webdavChunkUploadLocks sync.Map
+
+func getWebdavChunkUploadLock(uploadID string) *sync.Mutex {
+	lock, _ := webdavChunkUploadLocks.LoadOrStore(uploadID, &sync.Mutex{})
+	return lock.(*sync.Mutex)
+}
+
+func cleanWebdavChunkUploadLock(uploadID string) {
+	webdavChunkUploadLocks.Delete(uploadID)
+}
+
+func getWebdavChunkUploadTempPath(tempDir, uploadID, reqPath string) string {
+	sum := sha256.Sum256([]byte(uploadID + ":" + reqPath))
+	shortName := hex.EncodeToString(sum[:16])
+	return filepath.Join(tempDir, shortName+".part")
+}
 
 type Handler struct {
 	// Prefix is the URL path prefix to strip from WebDAV resource paths.
@@ -325,6 +349,9 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 	if err != nil {
 		return http.StatusForbidden, err
 	}
+	if r.Header.Get("Chunk-Index") != "" {
+		return h.handleChunkedPut(ctx, reqPath, r)
+	}
 	obj := model.Object{
 		Name:     path.Base(reqPath),
 		Size:     r.ContentLength,
@@ -359,6 +386,87 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 		return http.StatusInternalServerError, err
 	}
 	w.Header().Set("Etag", etag)
+	return http.StatusCreated, nil
+}
+
+func (h *Handler) handleChunkedPut(ctx context.Context, reqPath string, r *http.Request) (status int, err error) {
+	chunkIndex, err := strconv.Atoi(r.Header.Get("Chunk-Index"))
+	if err != nil || chunkIndex < 0 {
+		return http.StatusBadRequest, errors.New("invalid chunk index")
+	}
+	totalChunks, err := strconv.Atoi(r.Header.Get("Total-Chunks"))
+	if err != nil || totalChunks <= 0 {
+		return http.StatusBadRequest, errors.New("invalid total chunks")
+	}
+	totalSize, err := strconv.ParseInt(r.Header.Get("Total-Size"), 10, 64)
+	if err != nil || totalSize < 0 {
+		return http.StatusBadRequest, errors.New("invalid total size")
+	}
+	uploadID := r.Header.Get("Upload-Id")
+	if uploadID == "" {
+		return http.StatusBadRequest, errors.New("missing upload id")
+	}
+
+	tempDir := filepath.Join(conf.Conf.TempDir, "chunk_upload")
+	if err = os.MkdirAll(tempDir, 0o755); err != nil {
+		return http.StatusInternalServerError, err
+	}
+	tempPath := getWebdavChunkUploadTempPath(tempDir, uploadID, reqPath)
+
+	lock := getWebdavChunkUploadLock(uploadID)
+	lock.Lock()
+	defer lock.Unlock()
+
+	if chunkIndex == 0 {
+		_ = os.Remove(tempPath)
+	}
+	f, err := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+	if _, err = io.Copy(f, r.Body); err != nil {
+		_ = f.Close()
+		return http.StatusInternalServerError, err
+	}
+	if err = f.Close(); err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	if chunkIndex < totalChunks-1 {
+		return http.StatusOK, nil
+	}
+
+	f, err = os.Open(tempPath)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+	defer func() {
+		_ = f.Close()
+		_ = os.Remove(tempPath)
+		cleanWebdavChunkUploadLock(uploadID)
+	}()
+
+	obj := model.Object{
+		Name:     path.Base(reqPath),
+		Size:     totalSize,
+		Modified: h.getModTime(r),
+		Ctime:    h.getCreateTime(r),
+	}
+	fsStream := &stream.FileStream{
+		Obj:      &obj,
+		Reader:   f,
+		Mimetype: r.Header.Get("Content-Type"),
+	}
+	if fsStream.Mimetype == "" {
+		fsStream.Mimetype = utils.GetMimeType(reqPath)
+	}
+	err = fs.PutDirectly(ctx, path.Dir(reqPath), fsStream, true)
+	if errs.IsNotFoundError(err) {
+		return http.StatusNotFound, err
+	}
+	if err != nil {
+		return http.StatusMethodNotAllowed, err
+	}
 	return http.StatusCreated, nil
 }
 
