@@ -53,6 +53,9 @@ const UploadFile = (props: UploadFileProps) => {
           {t(`home.upload.${props.status}`)}
         </Badge>
         <Text>{getFileSize(props.speed)}/s</Text>
+        <Show when={props.totalChunks && props.totalChunks > 1}>
+          <Text>{`${props.currentChunk ?? 0}/${props.totalChunks}`}</Text>
+        </Show>
       </HStack>
       <Progress
         w="$full"
@@ -317,6 +320,9 @@ const Upload = () => {
               >
                 {t("home.upload.chunk_upload")}
               </Checkbox>
+              <Text size="sm" color="$neutral11">
+                {`${t("settings.web_chunk_upload_part_size")}：${getFileSize(chunkSize)}`}
+              </Text>
             </HStack>
           </Show>
         </VStack>
