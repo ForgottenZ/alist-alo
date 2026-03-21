@@ -303,6 +303,7 @@ type ArchiveCompressReq struct {
 	Format   string        `json:"format" form:"format"`
 	Password string        `json:"password" form:"password"`
 	DstName  string        `json:"dst_name" form:"dst_name"`
+	CopyMode string        `json:"copy_mode" form:"copy_mode"`
 }
 
 func FsArchiveCompress(c *gin.Context) {
@@ -333,6 +334,11 @@ func FsArchiveCompress(c *gin.Context) {
 	if !strings.HasSuffix(strings.ToLower(archiveName), "."+archiveFormat) {
 		archiveName += "." + archiveFormat
 	}
+	copyMode := fs.NormalizeArchiveCompressCopyMode(req.CopyMode)
+	if !fs.IsArchiveCompressCopyModeValid(copyMode) {
+		common.ErrorStrResp(c, "copy_mode must be temp, src_temp or none", 400)
+		return
+	}
 	srcDir, err := user.JoinPath(req.SrcDir)
 	if err != nil {
 		common.ErrorResp(c, err, 403)
@@ -348,6 +354,7 @@ func FsArchiveCompress(c *gin.Context) {
 		Format:   archiveFormat,
 		Password: req.Password,
 		DstName:  archiveName,
+		CopyMode: copyMode,
 	})
 	if err != nil {
 		common.ErrorResp(c, err, 500)
