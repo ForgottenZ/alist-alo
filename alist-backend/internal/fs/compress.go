@@ -137,6 +137,7 @@ func (t *ArchiveCompressTask) prepareCompressWorkspace() (cmdDir string, sources
 	switch t.CopyMode {
 	case ArchiveCompressCopyModeTemp, ArchiveCompressCopyModeSrcTemp:
 		workRoot := conf.Conf.TempDir
+		excludeLocalPathPrefixes := make([]string, 0, 1)
 		if t.CopyMode == ArchiveCompressCopyModeSrcTemp {
 			srcLocalDir, e := getMountDirLocalPath(t.Ctx(), t.SrcDirPath)
 			if e != nil {
@@ -157,6 +158,9 @@ func (t *ArchiveCompressTask) prepareCompressWorkspace() (cmdDir string, sources
 		cleanup = func() {
 			_ = os.RemoveAll(workDir)
 		}
+		if t.CopyMode == ArchiveCompressCopyModeSrcTemp {
+			excludeLocalPathPrefixes = append(excludeLocalPathPrefixes, workDir)
+		}
 		inputDir := filepath.Join(workDir, "input")
 		if e = os.MkdirAll(inputDir, 0o755); e != nil {
 			err = e
@@ -168,7 +172,7 @@ func (t *ArchiveCompressTask) prepareCompressWorkspace() (cmdDir string, sources
 				continue
 			}
 			srcPath := stdpath.Join(t.SrcDirPath, cleanName)
-			if e = copyMountPathToLocal(t.Ctx(), srcPath, filepath.Join(inputDir, filepath.Base(cleanName))); e != nil {
+			if e = copyMountPathToLocal(t.Ctx(), srcPath, filepath.Join(inputDir, filepath.Base(cleanName)), excludeLocalPathPrefixes...); e != nil {
 				err = errors.WithMessagef(e, "failed to prepare source %s", srcPath)
 				return
 			}
@@ -245,10 +249,13 @@ func getMountDirLocalPath(ctx context.Context, mountPath string) (string, error)
 	return localPath, nil
 }
 
-func copyMountPathToLocal(ctx context.Context, srcPath, localPath string) error {
+func copyMountPathToLocal(ctx context.Context, srcPath, localPath string, excludeLocalPathPrefixes ...string) error {
 	obj, err := Get(ctx, srcPath, &GetArgs{NoLog: true})
 	if err != nil {
 		return err
+	}
+	if isExcludedByLocalPath(obj.GetPath(), excludeLocalPathPrefixes) {
+		return nil
 	}
 	if obj.IsDir() {
 		if err = os.MkdirAll(localPath, 0o755); err != nil {
@@ -261,7 +268,7 @@ func copyMountPathToLocal(ctx context.Context, srcPath, localPath string) error 
 		for _, child := range children {
 			childSrc := stdpath.Join(srcPath, child.GetName())
 			childLocal := filepath.Join(localPath, child.GetName())
-			if err = copyMountPathToLocal(ctx, childSrc, childLocal); err != nil {
+			if err = copyMountPathToLocal(ctx, childSrc, childLocal, excludeLocalPathPrefixes...); err != nil {
 				return err
 			}
 		}
@@ -286,6 +293,23 @@ func copyMountPathToLocal(ctx context.Context, srcPath, localPath string) error 
 	defer out.Close()
 	_, err = io.Copy(out, ss)
 	return err
+}
+
+func isExcludedByLocalPath(localPath string, excludeLocalPathPrefixes []string) bool {
+	if localPath == "" || len(excludeLocalPathPrefixes) == 0 {
+		return false
+	}
+	cleanLocal := strings.ToLower(filepath.Clean(localPath))
+	for _, excludePrefix := range excludeLocalPathPrefixes {
+		if excludePrefix == "" {
+			continue
+		}
+		cleanPrefix := strings.ToLower(filepath.Clean(excludePrefix))
+		if cleanLocal == cleanPrefix || strings.HasPrefix(cleanLocal, cleanPrefix+string(os.PathSeparator)) {
+			return true
+		}
+	}
+	return false
 }
 
 var ArchiveCompressTaskManager *tache.Manager[*ArchiveCompressTask]
