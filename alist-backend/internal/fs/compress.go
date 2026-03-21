@@ -31,9 +31,33 @@ type ArchiveCompressTask struct {
 	Format     string   `json:"format"`
 	Password   string   `json:"password"`
 	DstName    string   `json:"dst_name"`
+	CopyMode   string   `json:"copy_mode"`
 
 	SrcStorageMp string `json:"src_storage_mp"`
 	DstStorageMp string `json:"dst_storage_mp"`
+}
+
+const (
+	ArchiveCompressCopyModeTemp    = "temp"
+	ArchiveCompressCopyModeSrcTemp = "src_temp"
+	ArchiveCompressCopyModeNone    = "none"
+)
+
+func NormalizeArchiveCompressCopyMode(mode string) string {
+	mode = strings.TrimSpace(strings.ToLower(mode))
+	if mode == "" {
+		return ArchiveCompressCopyModeTemp
+	}
+	return mode
+}
+
+func IsArchiveCompressCopyModeValid(mode string) bool {
+	switch mode {
+	case ArchiveCompressCopyModeTemp, ArchiveCompressCopyModeSrcTemp, ArchiveCompressCopyModeNone:
+		return true
+	default:
+		return false
+	}
 }
 
 func (t *ArchiveCompressTask) GetName() string {
@@ -50,27 +74,17 @@ func (t *ArchiveCompressTask) Run() error {
 	t.SetStartTime(time.Now())
 	defer func() { t.SetEndTime(time.Now()) }()
 
+	t.CopyMode = NormalizeArchiveCompressCopyMode(t.CopyMode)
+	if !IsArchiveCompressCopyModeValid(t.CopyMode) {
+		return errors.Errorf("invalid copy mode: %s", t.CopyMode)
+	}
+
 	t.Status = "preparing files"
-	workDir, err := os.MkdirTemp(conf.Conf.TempDir, "compress-*")
+	cmdDir, sources, archivePath, cleanup, err := t.prepareCompressWorkspace()
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(workDir)
-	inputDir := filepath.Join(workDir, "input")
-	if err = os.MkdirAll(inputDir, 0o755); err != nil {
-		return err
-	}
-
-	for _, name := range t.SrcNames {
-		cleanName := strings.TrimPrefix(stdpath.Clean("/"+strings.TrimSpace(name)), "/")
-		if cleanName == "" {
-			continue
-		}
-		srcPath := stdpath.Join(t.SrcDirPath, cleanName)
-		if err = copyMountPathToLocal(t.Ctx(), srcPath, filepath.Join(inputDir, filepath.Base(cleanName))); err != nil {
-			return errors.WithMessagef(err, "failed to prepare source %s", srcPath)
-		}
-	}
+	defer cleanup()
 
 	t.Status = "compressing"
 	binary := "7zz"
@@ -80,7 +94,6 @@ func (t *ArchiveCompressTask) Run() error {
 	if _, err = exec.LookPath(binary); err != nil {
 		return errors.New("7zz or 7z is required on server")
 	}
-	archivePath := filepath.Join(workDir, t.DstName)
 	args := []string{"a", "-bd", "-bso0", "-bsp0", "-mmt=1", "-mx=1", "-t" + t.Format, archivePath}
 	if t.Password != "" {
 		args = append(args, "-p"+t.Password)
@@ -88,15 +101,9 @@ func (t *ArchiveCompressTask) Run() error {
 			args = append(args, "-mhe=on")
 		}
 	}
-	entries, err := os.ReadDir(inputDir)
-	if err != nil {
-		return err
-	}
-	for _, e := range entries {
-		args = append(args, e.Name())
-	}
+	args = append(args, sources...)
 	cmd := exec.CommandContext(t.Ctx(), binary, args...)
-	cmd.Dir = inputDir
+	cmd.Dir = cmdDir
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return errors.Errorf("compress failed: %s", strings.TrimSpace(string(output)))
 	}
@@ -123,6 +130,119 @@ func (t *ArchiveCompressTask) Run() error {
 		Mimetype: mime.TypeByExtension(filepath.Ext(t.DstName)),
 	}
 	return PutDirectly(t.Ctx(), t.DstDirPath, fileStream, true)
+}
+
+func (t *ArchiveCompressTask) prepareCompressWorkspace() (cmdDir string, sources []string, archivePath string, cleanup func(), err error) {
+	cleanup = func() {}
+	switch t.CopyMode {
+	case ArchiveCompressCopyModeTemp, ArchiveCompressCopyModeSrcTemp:
+		workRoot := conf.Conf.TempDir
+		if t.CopyMode == ArchiveCompressCopyModeSrcTemp {
+			srcLocalDir, e := getMountDirLocalPath(t.Ctx(), t.SrcDirPath)
+			if e != nil {
+				err = errors.WithMessage(e, "copy_mode=src_temp requires source directory on local filesystem")
+				return
+			}
+			workRoot = filepath.Join(srcLocalDir, "temp")
+			if e = os.MkdirAll(workRoot, 0o755); e != nil {
+				err = e
+				return
+			}
+		}
+		workDir, e := os.MkdirTemp(workRoot, "compress-*")
+		if e != nil {
+			err = e
+			return
+		}
+		cleanup = func() {
+			_ = os.RemoveAll(workDir)
+		}
+		inputDir := filepath.Join(workDir, "input")
+		if e = os.MkdirAll(inputDir, 0o755); e != nil {
+			err = e
+			return
+		}
+		for _, name := range t.SrcNames {
+			cleanName := cleanCompressSourceName(name)
+			if cleanName == "" {
+				continue
+			}
+			srcPath := stdpath.Join(t.SrcDirPath, cleanName)
+			if e = copyMountPathToLocal(t.Ctx(), srcPath, filepath.Join(inputDir, filepath.Base(cleanName))); e != nil {
+				err = errors.WithMessagef(e, "failed to prepare source %s", srcPath)
+				return
+			}
+		}
+		entries, e := os.ReadDir(inputDir)
+		if e != nil {
+			err = e
+			return
+		}
+		sources = make([]string, 0, len(entries))
+		for _, entry := range entries {
+			sources = append(sources, entry.Name())
+		}
+		if len(sources) == 0 {
+			err = errors.New("name can not be empty")
+			return
+		}
+		cmdDir = inputDir
+		archivePath = filepath.Join(workDir, t.DstName)
+		return
+	case ArchiveCompressCopyModeNone:
+		srcLocalDir, e := getMountDirLocalPath(t.Ctx(), t.SrcDirPath)
+		if e != nil {
+			err = errors.WithMessage(e, "copy_mode=none requires source directory on local filesystem")
+			return
+		}
+		sources = make([]string, 0, len(t.SrcNames))
+		for _, name := range t.SrcNames {
+			cleanName := cleanCompressSourceName(name)
+			if cleanName == "" {
+				continue
+			}
+			sources = append(sources, filepath.FromSlash(cleanName))
+		}
+		if len(sources) == 0 {
+			err = errors.New("name can not be empty")
+			return
+		}
+		cmdDir = srcLocalDir
+		archivePath = filepath.Join(srcLocalDir, fmt.Sprintf(".alist-compress-%d-%s", time.Now().UnixNano(), t.DstName))
+		cleanup = func() {
+			_ = os.Remove(archivePath)
+		}
+		return
+	default:
+		err = errors.Errorf("invalid copy mode: %s", t.CopyMode)
+		return
+	}
+}
+
+func cleanCompressSourceName(name string) string {
+	return strings.TrimPrefix(stdpath.Clean("/"+strings.TrimSpace(name)), "/")
+}
+
+func getMountDirLocalPath(ctx context.Context, mountPath string) (string, error) {
+	srcDirObj, err := Get(ctx, mountPath, &GetArgs{NoLog: true})
+	if err != nil {
+		return "", err
+	}
+	if !srcDirObj.IsDir() {
+		return "", errors.New("source is not a folder")
+	}
+	localPath := srcDirObj.GetPath()
+	if localPath == "" {
+		return "", errors.New("source local path is empty")
+	}
+	stat, err := os.Stat(localPath)
+	if err != nil {
+		return "", err
+	}
+	if !stat.IsDir() {
+		return "", errors.New("source local path is not a folder")
+	}
+	return localPath, nil
 }
 
 func copyMountPathToLocal(ctx context.Context, srcPath, localPath string) error {
@@ -175,6 +295,7 @@ type ArchiveCompressArgs struct {
 	Format   string
 	Password string
 	DstName  string
+	CopyMode string
 }
 
 func archiveCompress(ctx context.Context, srcDirPath, dstDirPath string, args ArchiveCompressArgs) (task.TaskExtensionInfo, error) {
@@ -186,6 +307,14 @@ func archiveCompress(ctx context.Context, srcDirPath, dstDirPath string, args Ar
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed get dst storage")
 	}
+	copyMode := NormalizeArchiveCompressCopyMode(args.CopyMode)
+	if !IsArchiveCompressCopyModeValid(copyMode) {
+		return nil, errors.Errorf("invalid copy mode: %s", args.CopyMode)
+	}
+	if copyMode != ArchiveCompressCopyModeTemp && !srcStorage.Config().OnlyLocal {
+		return nil, errors.New("copy_mode src_temp or none requires source storage to be local")
+	}
+
 	taskCreator, _ := ctx.Value("user").(*model.User)
 	t := &ArchiveCompressTask{
 		TaskExtension: task.TaskExtension{Creator: taskCreator},
@@ -195,6 +324,7 @@ func archiveCompress(ctx context.Context, srcDirPath, dstDirPath string, args Ar
 		Format:        args.Format,
 		Password:      args.Password,
 		DstName:       args.DstName,
+		CopyMode:      copyMode,
 		SrcStorageMp:  srcStorage.GetStorage().MountPath,
 		DstStorageMp:  dstStorage.GetStorage().MountPath,
 	}

@@ -194,13 +194,13 @@ export const fsArchiveDecompress = (
   })
 }
 
-
 export const fsArchiveCompress = (
   src_dir: string,
   dst_dir: string,
   name: string[],
   format: "zip" | "7z",
   dst_name: string,
+  copy_mode: "temp" | "src_temp" | "none",
   password = "",
 ): PEmptyResp => {
   return r.post("/fs/archive/compress", {
@@ -209,6 +209,7 @@ export const fsArchiveCompress = (
     name,
     format,
     dst_name,
+    copy_mode,
     password,
   })
 }

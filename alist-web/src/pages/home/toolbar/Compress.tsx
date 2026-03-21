@@ -13,6 +13,9 @@ export const Compress = () => {
   const { refresh } = usePath()
   const [archiveName, setArchiveName] = createSignal("archive")
   const [format, setFormat] = createSignal<"zip" | "7z">("7z")
+  const [copyMode, setCopyMode] = createSignal<"temp" | "src_temp" | "none">(
+    "temp",
+  )
   const [password, setPassword] = createSignal("")
 
   const defaultName = createMemo(() => {
@@ -28,6 +31,7 @@ export const Compress = () => {
     batch(() => {
       setArchiveName(defaultName())
       setFormat("7z")
+      setCopyMode("temp")
       setPassword("")
     })
     onOpen()
@@ -56,6 +60,7 @@ export const Compress = () => {
           selectedObjs().map((o) => o.name),
           format(),
           name,
+          copyMode(),
           password(),
         )
         handleRespWithNotifySuccess(resp, () => {
@@ -84,6 +89,29 @@ export const Compress = () => {
             options={[
               { label: "7z", value: "7z" },
               { label: "zip", value: "zip" },
+            ]}
+            size="sm"
+            w="$full"
+          />
+        </HStack>
+        <HStack width="100%" spacing="$1">
+          <Text size="sm">{t("home.toolbar.compress_copy_mode")}</Text>
+          <SelectWrapper
+            value={copyMode()}
+            onChange={(v) => setCopyMode(v as "temp" | "src_temp" | "none")}
+            options={[
+              {
+                label: t("home.toolbar.compress_copy_mode_temp"),
+                value: "temp",
+              },
+              {
+                label: t("home.toolbar.compress_copy_mode_src_temp"),
+                value: "src_temp",
+              },
+              {
+                label: t("home.toolbar.compress_copy_mode_none"),
+                value: "none",
+              },
             ]}
             size="sm"
             w="$full"
