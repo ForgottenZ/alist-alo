@@ -91,6 +91,8 @@
     "regular_rename": "Regular expression file renaming. Input the source file name regular expression on the first line, and input the new file name regular expression on the second line.",
     "sequential_renaming_desc": "The new file name will have a numerical starting value appended to it, and it will be displayed sequentially by adding 1 to the starting value. Enter the new file name on the first line and the starting value on the second line.",
     "compress": "Compress",
+    "compress_volume_size": "Split volume size",
+    "compress_volume_size_placeholder": "Leave empty to disable",
     "compress_copy_mode": "Source handling",
     "compress_copy_mode_temp": "Copy to global temp",
     "compress_copy_mode_src_temp": "Copy to current folder temp",
