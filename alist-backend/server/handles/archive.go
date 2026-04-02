@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	stdpath "path"
+	"strconv"
 	"strings"
 
 	"github.com/alist-org/alist/v3/internal/task"
@@ -297,13 +298,33 @@ func FsArchiveDecompress(c *gin.Context) {
 }
 
 type ArchiveCompressReq struct {
-	SrcDir   string        `json:"src_dir" form:"src_dir"`
-	DstDir   string        `json:"dst_dir" form:"dst_dir"`
-	Name     StringOrArray `json:"name" form:"name"`
-	Format   string        `json:"format" form:"format"`
-	Password string        `json:"password" form:"password"`
-	DstName  string        `json:"dst_name" form:"dst_name"`
-	CopyMode string        `json:"copy_mode" form:"copy_mode"`
+	SrcDir     string        `json:"src_dir" form:"src_dir"`
+	DstDir     string        `json:"dst_dir" form:"dst_dir"`
+	Name       StringOrArray `json:"name" form:"name"`
+	Format     string        `json:"format" form:"format"`
+	Password   string        `json:"password" form:"password"`
+	DstName    string        `json:"dst_name" form:"dst_name"`
+	CopyMode   string        `json:"copy_mode" form:"copy_mode"`
+	VolumeSize string      `json:"volume_size" form:"volume_size"`
+}
+
+func normalizeArchiveVolumeSize(volumeSize string) (string, error) {
+	volumeSize = strings.ToUpper(strings.TrimSpace(volumeSize))
+	if volumeSize == "" {
+		return "", nil
+	}
+	if len(volumeSize) < 2 {
+		return "", errors.New("volume_size must be digits followed by K, M or G")
+	}
+	unit := volumeSize[len(volumeSize)-1]
+	if unit != 'K' && unit != 'M' && unit != 'G' {
+		return "", errors.New("volume_size must end with K, M or G")
+	}
+	size, err := strconv.ParseInt(volumeSize[:len(volumeSize)-1], 10, 64)
+	if err != nil || size <= 0 {
+		return "", errors.New("volume_size must start with a positive integer")
+	}
+	return fmt.Sprintf("%d%c", size, unit), nil
 }
 
 func FsArchiveCompress(c *gin.Context) {
@@ -339,6 +360,11 @@ func FsArchiveCompress(c *gin.Context) {
 		common.ErrorStrResp(c, "copy_mode must be temp, src_temp or none", 400)
 		return
 	}
+	volumeSize, err := normalizeArchiveVolumeSize(req.VolumeSize)
+	if err != nil {
+		common.ErrorResp(c, err, 400)
+		return
+	}
 	srcDir, err := user.JoinPath(req.SrcDir)
 	if err != nil {
 		common.ErrorResp(c, err, 403)
@@ -350,11 +376,12 @@ func FsArchiveCompress(c *gin.Context) {
 		return
 	}
 	t, err := fs.ArchiveCompress(c, srcDir, dstDir, fs.ArchiveCompressArgs{
-		Names:    req.Name,
-		Format:   archiveFormat,
-		Password: req.Password,
-		DstName:  archiveName,
-		CopyMode: copyMode,
+		Names:      req.Name,
+		Format:     archiveFormat,
+		Password:   req.Password,
+		DstName:    archiveName,
+		CopyMode:   copyMode,
+		VolumeSize: volumeSize,
 	})
 	if err != nil {
 		common.ErrorResp(c, err, 500)

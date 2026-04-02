@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	stdpath "path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -32,6 +33,7 @@ type ArchiveCompressTask struct {
 	Password   string   `json:"password"`
 	DstName    string   `json:"dst_name"`
 	CopyMode   string   `json:"copy_mode"`
+	VolumeSize string   `json:"volume_size"`
 
 	SrcStorageMp string `json:"src_storage_mp"`
 	DstStorageMp string `json:"dst_storage_mp"`
@@ -101,6 +103,9 @@ func (t *ArchiveCompressTask) Run() error {
 			args = append(args, "-mhe=on")
 		}
 	}
+	if t.VolumeSize != "" {
+		args = append(args, "-v"+t.VolumeSize)
+	}
 	args = append(args, sources...)
 	cmd := exec.CommandContext(t.Ctx(), binary, args...)
 	cmd.Dir = cmdDir
@@ -114,22 +119,44 @@ func (t *ArchiveCompressTask) Run() error {
 			return errors.WithMessage(err, "failed to prepare destination dir")
 		}
 	}
-	archiveFile, err := os.Open(archivePath)
+	archiveFiles, err := collectGeneratedArchiveFiles(archivePath)
 	if err != nil {
 		return err
 	}
-	defer archiveFile.Close()
-	info, err := archiveFile.Stat()
-	if err != nil {
-		return err
+	var totalSize int64
+	for _, archiveFilePath := range archiveFiles {
+		info, statErr := os.Stat(archiveFilePath)
+		if statErr != nil {
+			return statErr
+		}
+		totalSize += info.Size()
 	}
-	t.SetTotalBytes(info.Size())
-	fileStream := &stream.FileStream{
-		Obj:      &model.Object{Name: t.DstName, Size: info.Size(), Modified: time.Now()},
-		Reader:   archiveFile,
-		Mimetype: mime.TypeByExtension(filepath.Ext(t.DstName)),
+	t.SetTotalBytes(totalSize)
+	for _, archiveFilePath := range archiveFiles {
+		info, statErr := os.Stat(archiveFilePath)
+		if statErr != nil {
+			return statErr
+		}
+		archiveFile, openErr := os.Open(archiveFilePath)
+		if openErr != nil {
+			return openErr
+		}
+		fileName := t.getUploadArchiveName(filepath.Base(archiveFilePath), archivePath)
+		fileStream := &stream.FileStream{
+			Obj:      &model.Object{Name: fileName, Size: info.Size(), Modified: time.Now()},
+			Reader:   archiveFile,
+			Mimetype: mime.TypeByExtension(filepath.Ext(fileName)),
+		}
+		putErr := PutDirectly(t.Ctx(), t.DstDirPath, fileStream, true)
+		closeErr := archiveFile.Close()
+		if putErr != nil {
+			return putErr
+		}
+		if closeErr != nil {
+			return closeErr
+		}
 	}
-	return PutDirectly(t.Ctx(), t.DstDirPath, fileStream, true)
+	return nil
 }
 
 func (t *ArchiveCompressTask) prepareCompressWorkspace() (cmdDir string, sources []string, archivePath string, cleanup func(), err error) {
@@ -214,13 +241,52 @@ func (t *ArchiveCompressTask) prepareCompressWorkspace() (cmdDir string, sources
 		cmdDir = srcLocalDir
 		archivePath = filepath.Join(srcLocalDir, fmt.Sprintf(".alist-compress-%d-%s", time.Now().UnixNano(), t.DstName))
 		cleanup = func() {
-			_ = os.Remove(archivePath)
+			archiveFiles, e := collectGeneratedArchiveFiles(archivePath)
+			if e != nil {
+				return
+			}
+			for _, archiveFile := range archiveFiles {
+				_ = os.Remove(archiveFile)
+			}
 		}
 		return
 	default:
 		err = errors.Errorf("invalid copy mode: %s", t.CopyMode)
 		return
 	}
+}
+
+func collectGeneratedArchiveFiles(archivePath string) ([]string, error) {
+	dir := filepath.Dir(archivePath)
+	targetName := filepath.Base(archivePath)
+	targetStem := strings.TrimSuffix(targetName, filepath.Ext(targetName))
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	archiveFiles := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if name == targetName || strings.HasPrefix(name, targetName+".") || strings.HasPrefix(name, targetStem+".") {
+			archiveFiles = append(archiveFiles, filepath.Join(dir, name))
+		}
+	}
+	if len(archiveFiles) == 0 {
+		return nil, errors.Errorf("compress output not found: %s", archivePath)
+	}
+	sort.Strings(archiveFiles)
+	return archiveFiles, nil
+}
+
+func (t *ArchiveCompressTask) getUploadArchiveName(localName, archivePath string) string {
+	prefix := strings.TrimSuffix(filepath.Base(archivePath), t.DstName)
+	if prefix != "" && strings.HasPrefix(localName, prefix) {
+		return strings.TrimPrefix(localName, prefix)
+	}
+	return localName
 }
 
 func cleanCompressSourceName(name string) string {
@@ -315,11 +381,12 @@ func isExcludedByLocalPath(localPath string, excludeLocalPathPrefixes []string) 
 var ArchiveCompressTaskManager *tache.Manager[*ArchiveCompressTask]
 
 type ArchiveCompressArgs struct {
-	Names    []string
-	Format   string
-	Password string
-	DstName  string
-	CopyMode string
+	Names      []string
+	Format     string
+	Password   string
+	DstName    string
+	CopyMode   string
+	VolumeSize string
 }
 
 func archiveCompress(ctx context.Context, srcDirPath, dstDirPath string, args ArchiveCompressArgs) (task.TaskExtensionInfo, error) {
@@ -349,6 +416,7 @@ func archiveCompress(ctx context.Context, srcDirPath, dstDirPath string, args Ar
 		Password:      args.Password,
 		DstName:       args.DstName,
 		CopyMode:      copyMode,
+		VolumeSize:    args.VolumeSize,
 		SrcStorageMp:  srcStorage.GetStorage().MountPath,
 		DstStorageMp:  dstStorage.GetStorage().MountPath,
 	}

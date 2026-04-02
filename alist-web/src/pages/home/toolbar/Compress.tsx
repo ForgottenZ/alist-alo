@@ -17,6 +17,8 @@ export const Compress = () => {
     "temp",
   )
   const [password, setPassword] = createSignal("")
+  const [volumeSize, setVolumeSize] = createSignal("")
+  const [volumeUnit, setVolumeUnit] = createSignal<"K" | "M" | "G">("G")
 
   const defaultName = createMemo(() => {
     const list = selectedObjs()
@@ -33,6 +35,8 @@ export const Compress = () => {
       setFormat("7z")
       setCopyMode("temp")
       setPassword("")
+      setVolumeSize("")
+      setVolumeUnit("G")
     })
     onOpen()
   }
@@ -54,6 +58,7 @@ export const Compress = () => {
         if (!name.toLowerCase().endsWith(`.${ext}`)) {
           name = `${name}.${ext}`
         }
+        const trimmedVolumeSize = volumeSize().trim()
         const resp = await ok(
           pathname(),
           dst,
@@ -62,6 +67,7 @@ export const Compress = () => {
           name,
           copyMode(),
           password(),
+          trimmedVolumeSize ? `${trimmedVolumeSize}${volumeUnit()}` : "",
         )
         handleRespWithNotifySuccess(resp, () => {
           refresh()
@@ -115,6 +121,33 @@ export const Compress = () => {
             ]}
             size="sm"
             w="$full"
+          />
+        </HStack>
+        <HStack width="100%" spacing="$1" alignItems="center">
+          <Text size="sm" css={{ whiteSpace: "nowrap" }}>
+            {t("home.toolbar.compress_volume_size")}
+          </Text>
+          <Input
+            value={volumeSize()}
+            onInput={(e: any) =>
+              setVolumeSize((e.target.value as string).replace(/\D/g, ""))
+            }
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder={t("home.toolbar.compress_volume_size_placeholder")}
+            size="sm"
+            flexGrow="1"
+          />
+          <SelectWrapper
+            value={volumeUnit()}
+            onChange={(v) => setVolumeUnit(v as "K" | "M" | "G")}
+            options={[
+              { label: "K", value: "K" },
+              { label: "M", value: "M" },
+              { label: "G", value: "G" },
+            ]}
+            size="sm"
+            w="$24"
           />
         </HStack>
         <HStack width="100%" spacing="$1">

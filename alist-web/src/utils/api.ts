@@ -202,6 +202,7 @@ export const fsArchiveCompress = (
   dst_name: string,
   copy_mode: "temp" | "src_temp" | "none",
   password = "",
+  volume_size = "",
 ): PEmptyResp => {
   return r.post("/fs/archive/compress", {
     src_dir,
@@ -211,6 +212,7 @@ export const fsArchiveCompress = (
     dst_name,
     copy_mode,
     password,
+    volume_size,
   })
 }
 
