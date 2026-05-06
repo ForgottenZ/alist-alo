@@ -14,6 +14,7 @@ import {
   BsBucket,
   BsHddNetwork,
   BsArrowLeftRight,
+  BsBellFill,
 } from "solid-icons/bs"
 import { FiLogIn } from "solid-icons/fi"
 import { SiMetabase } from "solid-icons/si"
@@ -154,6 +155,12 @@ export const side_menu_items: SideMenuItem[] = [
         component: lazy(() => import("./tasks/Decompress")),
       },
     ],
+  },
+  {
+    title: "manage.sidemenu.notifications",
+    icon: BsBellFill,
+    to: "/@manage/notifications",
+    component: lazy(() => import("./notifications/Notifications")),
   },
   {
     title: "manage.sidemenu.users",

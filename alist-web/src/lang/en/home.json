@@ -96,7 +96,8 @@
     "compress_copy_mode": "Source handling",
     "compress_copy_mode_temp": "Copy to global temp",
     "compress_copy_mode_src_temp": "Copy to current folder temp",
-    "compress_copy_mode_none": "No copy (compress in place)"
+    "compress_copy_mode_none": "No copy (compress in place)",
+    "notify_when_done": "Notify when done"
   },
   "upload": {
     "add_as_task": "Add as task",
@@ -113,7 +114,8 @@
     "error": "Error",
     "back": "Back to Upload",
     "clear_done": "Clear Done",
-    "chunk_upload": "Enable chunk upload"
+    "chunk_upload": "Enable chunk upload",
+    "temp_in_target_dir": "Temp in target directory (Local)"
   },
   "local_settings": {
     "aria2_rpc_url": "Aria2 RPC URL",
