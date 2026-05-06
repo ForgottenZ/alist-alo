@@ -1,16 +1,18 @@
 package handles
 
 import (
+	"context"
 	"fmt"
-	"github.com/alist-org/alist/v3/internal/task"
 	"io"
 	stdpath "path"
 
 	"github.com/alist-org/alist/v3/internal/errs"
 	"github.com/alist-org/alist/v3/internal/fs"
 	"github.com/alist-org/alist/v3/internal/model"
+	"github.com/alist-org/alist/v3/internal/notification"
 	"github.com/alist-org/alist/v3/internal/op"
 	"github.com/alist-org/alist/v3/internal/sign"
+	"github.com/alist-org/alist/v3/internal/task"
 	"github.com/alist-org/alist/v3/pkg/generic"
 	"github.com/alist-org/alist/v3/pkg/utils"
 	"github.com/alist-org/alist/v3/server/common"
@@ -60,6 +62,7 @@ type MoveCopyReq struct {
 	DstDir    string   `json:"dst_dir"`
 	Names     []string `json:"names"`
 	Overwrite bool     `json:"overwrite"`
+	NotifyID  uint     `json:"notify_id"`
 }
 
 func FsMove(c *gin.Context) {
@@ -138,17 +141,35 @@ func FsCopy(c *gin.Context) {
 			}
 		}
 	}
+	var eventID string
+	if req.NotifyID > 0 {
+		eventID, err = notification.NewEvent(
+			req.NotifyID,
+			"AList copy finished",
+			fmt.Sprintf("Copy %v from %s to %s.", req.Names, req.SrcDir, req.DstDir),
+		)
+		if err != nil {
+			common.ErrorResp(c, err, 400)
+			return
+		}
+	}
+	copyCtx := context.Context(c)
+	if eventID != "" {
+		copyCtx = context.WithValue(c, notification.ContextEventIDKey, eventID)
+	}
 	var addedTasks []task.TaskExtensionInfo
 	for i, name := range req.Names {
-		t, err := fs.Copy(c, stdpath.Join(srcDir, name), dstDir, len(req.Names) > i+1)
+		t, err := fs.Copy(copyCtx, stdpath.Join(srcDir, name), dstDir, len(req.Names) > i+1)
 		if t != nil {
 			addedTasks = append(addedTasks, t)
 		}
 		if err != nil {
+			notification.FinishEventIfIdle(eventID, err)
 			common.ErrorResp(c, err, 500)
 			return
 		}
 	}
+	notification.FinishEventIfIdle(eventID, nil)
 	common.SuccessResp(c, gin.H{
 		"tasks": getTaskInfos(addedTasks),
 	})

@@ -12,6 +12,7 @@ export const FormUpload: Upload = async (
   rapid = false,
   _chunked = false,
   _chunkSize = 0,
+  _tempInTargetDir = false,
 ): Promise<Error | undefined> => {
   let oldTimestamp = new Date().valueOf()
   let oldLoaded = 0

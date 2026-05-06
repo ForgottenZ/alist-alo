@@ -1,5 +1,5 @@
 import { getSettingNumber, password } from "~/store"
-import { EmptyResp } from "~/types"
+import { EmptyResp, Resp } from "~/types"
 import { r } from "~/utils"
 import { SetUpload, Upload } from "./types"
 import { calculateHash } from "./util"
@@ -28,6 +28,7 @@ export const StreamUpload: Upload = async (
   rapid = false,
   chunked = false,
   chunkSize = getSettingNumber("web_chunk_upload_part_size", 10485760),
+  tempInTargetDir = false,
 ): Promise<Error | undefined> => {
   let oldTimestamp = new Date().valueOf()
   let oldLoaded = 0
@@ -53,18 +54,48 @@ export const StreamUpload: Upload = async (
     const uploadId = encodeURIComponent(
       `${uploadPath}-${file.size}-${file.lastModified}`,
     )
-    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+    const chunkHeaders = {
+      ...headers,
+      "Upload-Id": uploadId,
+      "Chunk-Size": chunkSize,
+      "Resume-Upload": "true",
+      "Chunk-Temp-In-Target": tempInTargetDir.toString(),
+    }
+    type ChunkStatus = {
+      last_chunk: number
+      next_chunk: number
+      total_chunks: number
+      total_size: number
+    }
+    const statusResp: Resp<ChunkStatus> = await r.get("/fs/chunk/status", {
+      headers: chunkHeaders,
+    })
+    let startChunk = 0
+    if (statusResp.code !== 200) {
+      return new Error(statusResp.message)
+    }
+    if (statusResp.data) {
+      startChunk = Math.max(
+        0,
+        Math.min(statusResp.data.next_chunk, totalChunks - 1),
+      )
+      if (startChunk > 0) {
+        const loaded = Math.min(startChunk * chunkSize, file.size)
+        setUpload("progress", ((loaded / file.size) * 100) | 0)
+        oldLoaded = loaded
+      }
+    }
+    for (let chunkIndex = startChunk; chunkIndex < totalChunks; chunkIndex++) {
       setUpload("currentChunk", chunkIndex + 1)
       const start = chunkIndex * chunkSize
       const end = Math.min(start + chunkSize, file.size)
       const chunk = file.slice(start, end)
       const resp: EmptyResp = await r.put("/fs/put", chunk, {
         headers: {
-          ...headers,
+          ...chunkHeaders,
           "Chunk-Index": chunkIndex,
           "Total-Chunks": totalChunks,
           "Total-Size": file.size,
-          "Upload-Id": uploadId,
         },
         onUploadProgress: (progressEvent) => {
           const chunkLoaded = progressEvent.loaded || 0

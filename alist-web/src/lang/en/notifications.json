@@ -1,0 +1,15 @@
+{
+  "name": "Name",
+  "type": "Type",
+  "enabled": "Enabled",
+  "config": "Config",
+  "remark": "Remark",
+  "test": "Test",
+  "test_title": "AList notification test",
+  "test_body": "This is a test notification from AList.",
+  "test_success": "Test notification sent",
+  "providers": {
+    "pushdeer": "PushDeer",
+    "azure_oauth": "Azure OAuth"
+  }
+}
