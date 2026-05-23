@@ -27,4 +27,5 @@ export type Upload = (
   rapid: boolean,
   chunked: boolean,
   chunkSize: number,
+  tempInTargetDir: boolean,
 ) => Promise<Error | undefined>

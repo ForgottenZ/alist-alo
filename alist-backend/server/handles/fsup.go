@@ -3,6 +3,8 @@ package handles
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"io"
 	"net/url"
 	"os"
@@ -15,6 +17,7 @@ import (
 	"github.com/alist-org/alist/v3/internal/conf"
 	"github.com/alist-org/alist/v3/internal/fs"
 	"github.com/alist-org/alist/v3/internal/model"
+	"github.com/alist-org/alist/v3/internal/op"
 	"github.com/alist-org/alist/v3/internal/stream"
 	"github.com/alist-org/alist/v3/internal/task"
 	"github.com/alist-org/alist/v3/pkg/utils"
@@ -48,6 +51,130 @@ func getChunkUploadTempPath(tempDir, uploadID string) string {
 	sum := sha256.Sum256([]byte(uploadID))
 	shortName := hex.EncodeToString(sum[:16])
 	return filepath.Join(tempDir, shortName+".part")
+}
+
+type chunkUploadProgress struct {
+	UploadID    string    `json:"upload_id"`
+	LastChunk   int       `json:"last_chunk"`
+	TotalChunks int       `json:"total_chunks"`
+	TotalSize   int64     `json:"total_size"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+func getChunkUploadProgressPath(tempPath string) string {
+	return tempPath + ".progress.json"
+}
+
+func readChunkUploadProgress(progressPath string) (chunkUploadProgress, bool, error) {
+	progress := chunkUploadProgress{LastChunk: -1}
+	data, err := os.ReadFile(progressPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return progress, false, nil
+		}
+		return progress, false, err
+	}
+	if err = json.Unmarshal(data, &progress); err != nil {
+		return chunkUploadProgress{LastChunk: -1}, false, err
+	}
+	return progress, true, nil
+}
+
+func writeChunkUploadProgress(progressPath string, progress chunkUploadProgress) error {
+	progress.UpdatedAt = time.Now()
+	data, err := json.Marshal(progress)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(progressPath, data, 0o644)
+}
+
+func chunkProgressResp(progress chunkUploadProgress) gin.H {
+	nextChunk := progress.LastChunk + 1
+	if progress.TotalChunks > 0 && nextChunk > progress.TotalChunks {
+		nextChunk = progress.TotalChunks
+	}
+	return gin.H{
+		"last_chunk":   progress.LastChunk,
+		"next_chunk":   nextChunk,
+		"total_chunks": progress.TotalChunks,
+		"total_size":   progress.TotalSize,
+	}
+}
+
+func getChunkUploadPaths(c *gin.Context, path, uploadID string, tempInTarget bool) (string, string, error) {
+	tempDir := filepath.Join(conf.Conf.TempDir, "chunk_upload")
+	if tempInTarget {
+		dir, _ := stdpath.Split(path)
+		storage, actualDirPath, err := op.GetStorageAndActualPath(dir)
+		if err != nil {
+			return "", "", err
+		}
+		if !storage.Config().OnlyLocal {
+			return "", "", errors.New("chunk temp in target directory only supports Local storage")
+		}
+		if err := fs.MakeDir(c, dir, true); err != nil {
+			return "", "", err
+		}
+		dirObj, err := op.GetUnwrap(c, storage, actualDirPath)
+		if err != nil {
+			return "", "", err
+		}
+		if !dirObj.IsDir() {
+			return "", "", errors.New("target path is not a directory")
+		}
+		tempDir = dirObj.GetPath()
+	}
+	if err := os.MkdirAll(tempDir, 0o755); err != nil {
+		return "", "", err
+	}
+	tempPath := getChunkUploadTempPath(tempDir, uploadID)
+	return tempPath, getChunkUploadProgressPath(tempPath), nil
+}
+
+func parseChunkPartSize(c *gin.Context) int64 {
+	partSize, _ := strconv.ParseInt(c.GetHeader("Chunk-Size"), 10, 64)
+	if partSize < 0 {
+		return 0
+	}
+	return partSize
+}
+
+func FsChunkStatus(c *gin.Context) {
+	path := c.GetHeader("File-Path")
+	path, err := url.PathUnescape(path)
+	if err != nil {
+		common.ErrorResp(c, err, 400)
+		return
+	}
+	uploadID := c.GetHeader("Upload-Id")
+	if uploadID == "" {
+		common.ErrorStrResp(c, "missing upload id", 400)
+		return
+	}
+	user := c.MustGet("user").(*model.User)
+	path, err = user.JoinPath(path)
+	if err != nil {
+		common.ErrorResp(c, err, 403)
+		return
+	}
+	_, progressPath, err := getChunkUploadPaths(c, path, uploadID, c.GetHeader("Chunk-Temp-In-Target") == "true")
+	if err != nil {
+		common.ErrorResp(c, err, 400)
+		return
+	}
+	lock := getChunkUploadLock(uploadID)
+	lock.Lock()
+	defer lock.Unlock()
+	progress, ok, err := readChunkUploadProgress(progressPath)
+	if err != nil {
+		common.ErrorResp(c, err, 500)
+		return
+	}
+	if !ok {
+		progress = chunkUploadProgress{UploadID: uploadID, LastChunk: -1}
+	}
+	common.SuccessResp(c, chunkProgressResp(progress))
 }
 
 func handleChunkUpload(c *gin.Context, path string, asTask bool, overwrite bool) {
@@ -86,45 +213,111 @@ func handleChunkUpload(c *gin.Context, path string, asTask bool, overwrite bool)
 		}
 	}
 
-	tempDir := filepath.Join(conf.Conf.TempDir, "chunk_upload")
-	if err = os.MkdirAll(tempDir, 0o755); err != nil {
-		common.ErrorResp(c, err, 500)
+	tempPath, progressPath, err := getChunkUploadPaths(c, path, uploadID, c.GetHeader("Chunk-Temp-In-Target") == "true")
+	if err != nil {
+		common.ErrorResp(c, err, 400)
 		return
 	}
-	tempPath := getChunkUploadTempPath(tempDir, uploadID)
 
 	lock := getChunkUploadLock(uploadID)
 	lock.Lock()
 	defer lock.Unlock()
 
-	if chunkIndex == 0 {
+	progress, hasProgress, err := readChunkUploadProgress(progressPath)
+	if err != nil {
+		common.ErrorResp(c, err, 500)
+		return
+	}
+	resume := c.GetHeader("Resume-Upload") == "true"
+	if !resume || !hasProgress || progress.TotalChunks != totalChunks || progress.TotalSize != totalSize {
+		progress = chunkUploadProgress{
+			UploadID:    uploadID,
+			LastChunk:   -1,
+			TotalChunks: totalChunks,
+			TotalSize:   totalSize,
+		}
+	}
+	if chunkIndex == 0 && progress.LastChunk < 0 {
 		_ = os.Remove(tempPath)
+		_ = os.Remove(progressPath)
 	}
-	f, err := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
-	if err != nil {
-		common.ErrorResp(c, err, 500)
+	alreadyUploaded := resume && progress.LastChunk >= chunkIndex
+	if alreadyUploaded {
+		_, _ = utils.CopyWithBuffer(io.Discard, c.Request.Body)
+		if chunkIndex < totalChunks-1 {
+			common.SuccessResp(c, chunkProgressResp(progress))
+			return
+		}
+	} else if resume && chunkIndex != progress.LastChunk+1 {
+		_, _ = utils.CopyWithBuffer(io.Discard, c.Request.Body)
+		common.ErrorWithDataResp(c, errors.New("chunk out of order"), 409, chunkProgressResp(progress))
 		return
-	}
-	if _, err = io.Copy(f, c.Request.Body); err != nil {
+	} else {
+		f, err := os.OpenFile(tempPath, os.O_CREATE|os.O_RDWR, 0o644)
+		if err != nil {
+			common.ErrorResp(c, err, 500)
+			return
+		}
+		partSize := parseChunkPartSize(c)
+		if partSize > 0 {
+			if _, err = f.Seek(int64(chunkIndex)*partSize, io.SeekStart); err != nil {
+				_ = f.Close()
+				common.ErrorResp(c, err, 500)
+				return
+			}
+		} else if _, err = f.Seek(0, io.SeekEnd); err != nil {
+			_ = f.Close()
+			common.ErrorResp(c, err, 500)
+			return
+		}
+		written, err := io.Copy(f, c.Request.Body)
+		if err != nil {
+			_ = f.Close()
+			common.ErrorResp(c, err, 500)
+			return
+		}
+		if partSize > 0 && chunkIndex < totalChunks-1 && written != partSize {
+			_ = f.Close()
+			common.ErrorStrResp(c, "chunk size mismatch", 400)
+			return
+		}
 		_ = f.Close()
-		common.ErrorResp(c, err, 500)
-		return
-	}
-	_ = f.Close()
 
-	if chunkIndex < totalChunks-1 {
-		common.SuccessResp(c)
-		return
+		progress.LastChunk = chunkIndex
+		progress.TotalChunks = totalChunks
+		progress.TotalSize = totalSize
+		if err = writeChunkUploadProgress(progressPath, progress); err != nil {
+			common.ErrorResp(c, err, 500)
+			return
+		}
+		if chunkIndex < totalChunks-1 {
+			common.SuccessResp(c, chunkProgressResp(progress))
+			return
+		}
 	}
 
-	f, err = os.Open(tempPath)
+	f, err := os.Open(tempPath)
 	if err != nil {
 		common.ErrorResp(c, err, 500)
 		return
 	}
+	if stat, err := f.Stat(); err == nil && stat.Size() != totalSize {
+		_ = f.Close()
+		common.ErrorStrResp(c, "chunk upload size mismatch", 400)
+		return
+	}
+	finalized := false
+	taskQueued := false
 	defer func() {
-		_ = f.Close()
-		_ = os.Remove(tempPath)
+		if !taskQueued {
+			_ = f.Close()
+		}
+		if finalized && !taskQueued {
+			_ = os.Remove(tempPath)
+		}
+		if finalized {
+			_ = os.Remove(progressPath)
+		}
 		cleanChunkUploadLock(uploadID)
 	}()
 
@@ -150,6 +343,9 @@ func handleChunkUpload(c *gin.Context, path string, asTask bool, overwrite bool)
 		Mimetype:     c.GetHeader("Content-Type"),
 		WebPutAsTask: asTask,
 	}
+	if asTask {
+		s.SetTmpFile(f)
+	}
 	if s.Mimetype == "" {
 		s.Mimetype = utils.GetMimeType(name)
 	}
@@ -163,6 +359,8 @@ func handleChunkUpload(c *gin.Context, path string, asTask bool, overwrite bool)
 		common.ErrorResp(c, err, 500)
 		return
 	}
+	finalized = true
+	taskQueued = asTask && t != nil
 	if t == nil {
 		common.SuccessResp(c)
 		return

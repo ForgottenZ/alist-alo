@@ -15,17 +15,27 @@ import (
 )
 
 type TaskInfo struct {
-	ID          string      `json:"id"`
-	Name        string      `json:"name"`
-	Creator     string      `json:"creator"`
-	CreatorRole int         `json:"creator_role"`
-	State       tache.State `json:"state"`
-	Status      string      `json:"status"`
-	Progress    float64     `json:"progress"`
-	StartTime   *time.Time  `json:"start_time"`
-	EndTime     *time.Time  `json:"end_time"`
-	TotalBytes  int64       `json:"total_bytes"`
-	Error       string      `json:"error"`
+	ID                  string      `json:"id"`
+	Name                string      `json:"name"`
+	Creator             string      `json:"creator"`
+	CreatorRole         int         `json:"creator_role"`
+	State               tache.State `json:"state"`
+	Status              string      `json:"status"`
+	Progress            float64     `json:"progress"`
+	StartTime           *time.Time  `json:"start_time"`
+	EndTime             *time.Time  `json:"end_time"`
+	TotalBytes          int64       `json:"total_bytes"`
+	Error               string      `json:"error"`
+	HasNotification     bool        `json:"has_notification"`
+	NotificationID      uint        `json:"notification_id,omitempty"`
+	NotificationName    string      `json:"notification_name,omitempty"`
+	NotificationEventID string      `json:"notification_event_id,omitempty"`
+}
+
+type notificationTaskInfo interface {
+	GetNotifyEventID() string
+	GetNotifyID() uint
+	GetNotifyName() string
 }
 
 func getTaskInfo[T task.TaskExtensionInfo](task T) TaskInfo {
@@ -44,18 +54,32 @@ func getTaskInfo[T task.TaskExtensionInfo](task T) TaskInfo {
 		creatorName = task.GetCreator().Username
 		creatorRole = task.GetCreator().Role
 	}
+	hasNotification := false
+	notificationID := uint(0)
+	notificationName := ""
+	notificationEventID := ""
+	if notifyTask, ok := any(task).(notificationTaskInfo); ok {
+		notificationEventID = notifyTask.GetNotifyEventID()
+		notificationID = notifyTask.GetNotifyID()
+		notificationName = notifyTask.GetNotifyName()
+		hasNotification = notificationEventID != "" || notificationID > 0 || notificationName != ""
+	}
 	return TaskInfo{
-		ID:          task.GetID(),
-		Name:        task.GetName(),
-		Creator:     creatorName,
-		CreatorRole: creatorRole,
-		State:       task.GetState(),
-		Status:      task.GetStatus(),
-		Progress:    progress,
-		StartTime:   task.GetStartTime(),
-		EndTime:     task.GetEndTime(),
-		TotalBytes:  task.GetTotalBytes(),
-		Error:       errMsg,
+		ID:                  task.GetID(),
+		Name:                task.GetName(),
+		Creator:             creatorName,
+		CreatorRole:         creatorRole,
+		State:               task.GetState(),
+		Status:              task.GetStatus(),
+		Progress:            progress,
+		StartTime:           task.GetStartTime(),
+		EndTime:             task.GetEndTime(),
+		TotalBytes:          task.GetTotalBytes(),
+		Error:               errMsg,
+		HasNotification:     hasNotification,
+		NotificationID:      notificationID,
+		NotificationName:    notificationName,
+		NotificationEventID: notificationEventID,
 	}
 }
 

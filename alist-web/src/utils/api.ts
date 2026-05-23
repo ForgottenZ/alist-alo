@@ -100,8 +100,9 @@ export const fsCopy = (
   dst_dir: string,
   names: string[],
   overwrite: boolean,
+  notify_id = 0,
 ): PEmptyResp => {
-  return r.post("/fs/copy", { src_dir, dst_dir, names, overwrite })
+  return r.post("/fs/copy", { src_dir, dst_dir, names, overwrite, notify_id })
 }
 
 export const fsRemove = (dir: string, names: string[]): PEmptyResp => {
@@ -194,14 +195,15 @@ export const fsArchiveDecompress = (
   })
 }
 
-
 export const fsArchiveCompress = (
   src_dir: string,
   dst_dir: string,
   name: string[],
   format: "zip" | "7z",
   dst_name: string,
+  copy_mode: "temp" | "src_temp" | "none",
   password = "",
+  volume_size = "",
 ): PEmptyResp => {
   return r.post("/fs/archive/compress", {
     src_dir,
@@ -209,7 +211,9 @@ export const fsArchiveCompress = (
     name,
     format,
     dst_name,
+    copy_mode,
     password,
+    volume_size,
   })
 }
 

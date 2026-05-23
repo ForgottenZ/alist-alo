@@ -1,9 +1,23 @@
-import { Checkbox, createDisclosure } from "@hope-ui/solid"
-import { createSignal, onCleanup } from "solid-js"
-import { ModalFolderChoose } from "~/components"
+import { Box, Checkbox, VStack, createDisclosure } from "@hope-ui/solid"
+import { Show, createSignal, onCleanup } from "solid-js"
+import { ModalFolderChoose, SelectWrapper } from "~/components"
 import { useFetch, usePath, useRouter, useT } from "~/hooks"
 import { selectedObjs } from "~/store"
-import { bus, fsCopy, fsMove, handleRespWithNotifySuccess } from "~/utils"
+import {
+  bus,
+  fsCopy,
+  fsMove,
+  handleResp,
+  handleRespWithNotifySuccess,
+  notify,
+  r,
+} from "~/utils"
+import { NotificationItem, Resp } from "~/types"
+
+type NotificationOption = Pick<
+  NotificationItem,
+  "id" | "name" | "type" | "enabled" | "remark"
+>
 
 export const Copy = () => {
   const t = useT()
@@ -12,10 +26,37 @@ export const Copy = () => {
   const { pathname } = useRouter()
   const { refresh } = usePath()
   const [overwrite, setOverwrite] = createSignal(false)
+  const [notifyWhenDone, setNotifyWhenDone] = createSignal(false)
+  const [notifyID, setNotifyID] = createSignal(0)
+  const [notifications, setNotifications] = createSignal<NotificationOption[]>(
+    [],
+  )
+  const loadNotifications = async () => {
+    const resp: Resp<NotificationOption[]> = await r.get(
+      "/notification/enabled",
+    )
+    handleResp(
+      resp,
+      (enabled) => {
+        setNotifications(enabled)
+        if (
+          enabled.length > 0 &&
+          !enabled.find((item) => item.id === notifyID())
+        ) {
+          setNotifyID(enabled[0].id)
+        }
+      },
+      undefined,
+      true,
+      false,
+    )
+  }
   const handler = (name: string) => {
     if (name === "copy") {
       onOpen()
       setOverwrite(false)
+      setNotifyWhenDone(false)
+      loadNotifications()
     }
   }
   bus.on("tool", handler)
@@ -29,15 +70,37 @@ export const Copy = () => {
       onClose={onClose}
       loading={loading()}
       footerSlot={
-        <Checkbox
-          mr="auto"
-          checked={overwrite()}
-          onChange={() => {
-            setOverwrite(!overwrite())
-          }}
-        >
-          {t("home.conflict_policy.overwrite_existing")}
-        </Checkbox>
+        <VStack mr="auto" alignItems="start" spacing="$2">
+          <Checkbox
+            checked={overwrite()}
+            onChange={() => {
+              setOverwrite(!overwrite())
+            }}
+          >
+            {t("home.conflict_policy.overwrite_existing")}
+          </Checkbox>
+          <Checkbox
+            checked={notifyWhenDone()}
+            disabled={notifications().length === 0}
+            onChange={() => {
+              setNotifyWhenDone(!notifyWhenDone())
+            }}
+          >
+            {t("home.toolbar.notify_when_done")}
+          </Checkbox>
+          <Show when={notifyWhenDone() && notifications().length > 0}>
+            <Box w="$64">
+              <SelectWrapper
+                value={notifyID()}
+                onChange={setNotifyID}
+                options={notifications().map((item) => ({
+                  label: item.name,
+                  value: item.id,
+                }))}
+              />
+            </Box>
+          </Show>
+        </VStack>
       }
       onSubmit={async (dst) => {
         const resp = await ok(
@@ -45,8 +108,12 @@ export const Copy = () => {
           dst,
           selectedObjs().map((obj) => obj.name),
           overwrite(),
+          notifyWhenDone() ? notifyID() : 0,
         )
         handleRespWithNotifySuccess(resp, () => {
+          if (notifyWhenDone() && notifyID() > 0) {
+            notify.info(t("notifications.bound_success"))
+          }
           refresh()
           onClose()
         })

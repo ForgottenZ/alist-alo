@@ -3,14 +3,15 @@ package fs
 import (
 	"context"
 	"fmt"
-	"github.com/alist-org/alist/v3/internal/errs"
 	"net/http"
 	stdpath "path"
 	"time"
 
 	"github.com/alist-org/alist/v3/internal/conf"
 	"github.com/alist-org/alist/v3/internal/driver"
+	"github.com/alist-org/alist/v3/internal/errs"
 	"github.com/alist-org/alist/v3/internal/model"
+	"github.com/alist-org/alist/v3/internal/notification"
 	"github.com/alist-org/alist/v3/internal/op"
 	"github.com/alist-org/alist/v3/internal/stream"
 	"github.com/alist-org/alist/v3/internal/task"
@@ -28,6 +29,9 @@ type CopyTask struct {
 	dstStorage   driver.Driver `json:"-"`
 	SrcStorageMp string        `json:"src_storage_mp"`
 	DstStorageMp string        `json:"dst_storage_mp"`
+	NotifyEventID string      `json:"notify_event_id,omitempty"`
+	NotifyID      uint        `json:"notify_id,omitempty"`
+	NotifyName    string      `json:"notify_name,omitempty"`
 }
 
 func (t *CopyTask) GetName() string {
@@ -38,12 +42,32 @@ func (t *CopyTask) GetStatus() string {
 	return t.Status
 }
 
-func (t *CopyTask) Run() error {
+func (t *CopyTask) GetNotifyEventID() string {
+	return t.NotifyEventID
+}
+
+func (t *CopyTask) GetNotifyID() uint {
+	return t.NotifyID
+}
+
+func (t *CopyTask) GetNotifyName() string {
+	return t.NotifyName
+}
+
+func (t *CopyTask) Run() (err error) {
 	t.ReinitCtx()
 	t.ClearEndTime()
 	t.SetStartTime(time.Now())
-	defer func() { t.SetEndTime(time.Now()) }()
-	var err error
+	defer func() {
+		t.SetEndTime(time.Now())
+		if t.NotifyEventID != "" {
+			notifyErr := err
+			if notifyErr == nil && t.Ctx().Err() != nil {
+				notifyErr = t.Ctx().Err()
+			}
+			notification.FinishEventTask(t.NotifyEventID, notifyErr)
+		}
+	}()
 	if t.srcStorage == nil {
 		t.srcStorage, err = op.GetStorageByMountPath(t.SrcStorageMp)
 	}
@@ -103,6 +127,9 @@ func _copy(ctx context.Context, srcObjPath, dstDirPath string, lazyCache ...bool
 	}
 	// not in the same storage
 	taskCreator, _ := ctx.Value("user").(*model.User)
+	notifyEventID := notification.EventIDFromContext(ctx)
+	notifyID := notification.NotificationIDFromContext(ctx)
+	notifyName := notification.NotificationNameFromContext(ctx)
 	t := &CopyTask{
 		TaskExtension: task.TaskExtension{
 			Creator: taskCreator,
@@ -113,6 +140,12 @@ func _copy(ctx context.Context, srcObjPath, dstDirPath string, lazyCache ...bool
 		DstDirPath:   dstDirActualPath,
 		SrcStorageMp: srcStorage.GetStorage().MountPath,
 		DstStorageMp: dstStorage.GetStorage().MountPath,
+		NotifyEventID: notifyEventID,
+		NotifyID:      notifyID,
+		NotifyName:    notifyName,
+	}
+	if notifyEventID != "" {
+		notification.AddEventTask(notifyEventID)
 	}
 	CopyTaskManager.Add(t)
 	return t, nil
@@ -136,7 +169,7 @@ func copyBetween2Storages(t *CopyTask, srcStorage, dstStorage driver.Driver, src
 			}
 			srcObjPath := stdpath.Join(srcObjPath, obj.GetName())
 			dstObjPath := stdpath.Join(dstDirPath, srcObj.GetName())
-			CopyTaskManager.Add(&CopyTask{
+			childTask := &CopyTask{
 				TaskExtension: task.TaskExtension{
 					Creator: t.GetCreator(),
 				},
@@ -146,7 +179,14 @@ func copyBetween2Storages(t *CopyTask, srcStorage, dstStorage driver.Driver, src
 				DstDirPath:   dstObjPath,
 				SrcStorageMp: srcStorage.GetStorage().MountPath,
 				DstStorageMp: dstStorage.GetStorage().MountPath,
-			})
+				NotifyEventID: t.NotifyEventID,
+				NotifyID:      t.NotifyID,
+				NotifyName:    t.NotifyName,
+			}
+			if t.NotifyEventID != "" {
+				notification.AddEventTask(t.NotifyEventID)
+			}
+			CopyTaskManager.Add(childTask)
 		}
 		t.Status = "src object is dir, added all copy tasks of objs"
 		return nil

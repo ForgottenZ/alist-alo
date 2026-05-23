@@ -84,6 +84,7 @@ const Upload = () => {
   const [chunkUpload, setChunkUpload] = createSignal(
     getSettingBool("web_default_chunk_upload"),
   )
+  const [tempInTargetDir, setTempInTargetDir] = createSignal(false)
   const chunkSize = getSettingNumber("web_chunk_upload_part_size", 10485760)
   const [uploadFiles, setUploadFiles] = createStore<{
     uploads: UploadFileProps[]
@@ -130,6 +131,7 @@ const Upload = () => {
         rapid(),
         chunkUpload(),
         chunkSize,
+        tempInTargetDir(),
       )
       if (!err) {
         setUpload(path, "status", "success")
@@ -257,6 +259,7 @@ const Upload = () => {
                   setCurUploader(
                     uploaders.find((uploader) => uploader.name === name)!,
                   )
+                  if (name !== "Stream") setTempInTargetDir(false)
                 }}
                 options={uploaders.map((uploader) => {
                   return {
@@ -315,7 +318,9 @@ const Upload = () => {
               <Checkbox
                 checked={chunkUpload()}
                 onChange={() => {
-                  setChunkUpload(!chunkUpload())
+                  const enabled = !chunkUpload()
+                  setChunkUpload(enabled)
+                  if (!enabled) setTempInTargetDir(false)
                 }}
               >
                 {t("home.upload.chunk_upload")}
@@ -323,6 +328,15 @@ const Upload = () => {
               <Text size="sm" color="$neutral11">
                 {`${t("settings.web_chunk_upload_part_size")}：${getFileSize(chunkSize)}`}
               </Text>
+              <Checkbox
+                checked={tempInTargetDir()}
+                disabled={!chunkUpload() || curUploader().name !== "Stream"}
+                onChange={() => {
+                  setTempInTargetDir(!tempInTargetDir())
+                }}
+              >
+                {t("home.upload.temp_in_target_dir")}
+              </Checkbox>
             </HStack>
           </Show>
         </VStack>

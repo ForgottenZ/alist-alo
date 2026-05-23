@@ -1,0 +1,16 @@
+{
+  "name": "名称",
+  "type": "类型",
+  "enabled": "启用",
+  "config": "配置",
+  "remark": "备注",
+  "test": "测试",
+  "test_title": "AList 通知测试",
+  "test_body": "这是一条来自 AList 的测试通知。",
+  "test_success": "测试通知已发送",
+  "bound_success": "已绑定通知",
+  "providers": {
+    "pushdeer": "PushDeer",
+    "azure_oauth": "Azure OAuth"
+  }
+}
