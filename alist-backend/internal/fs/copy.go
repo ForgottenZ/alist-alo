@@ -30,6 +30,8 @@ type CopyTask struct {
 	SrcStorageMp string        `json:"src_storage_mp"`
 	DstStorageMp string        `json:"dst_storage_mp"`
 	NotifyEventID string      `json:"notify_event_id,omitempty"`
+	NotifyID      uint        `json:"notify_id,omitempty"`
+	NotifyName    string      `json:"notify_name,omitempty"`
 }
 
 func (t *CopyTask) GetName() string {
@@ -38,6 +40,18 @@ func (t *CopyTask) GetName() string {
 
 func (t *CopyTask) GetStatus() string {
 	return t.Status
+}
+
+func (t *CopyTask) GetNotifyEventID() string {
+	return t.NotifyEventID
+}
+
+func (t *CopyTask) GetNotifyID() uint {
+	return t.NotifyID
+}
+
+func (t *CopyTask) GetNotifyName() string {
+	return t.NotifyName
 }
 
 func (t *CopyTask) Run() (err error) {
@@ -114,6 +128,8 @@ func _copy(ctx context.Context, srcObjPath, dstDirPath string, lazyCache ...bool
 	// not in the same storage
 	taskCreator, _ := ctx.Value("user").(*model.User)
 	notifyEventID := notification.EventIDFromContext(ctx)
+	notifyID := notification.NotificationIDFromContext(ctx)
+	notifyName := notification.NotificationNameFromContext(ctx)
 	t := &CopyTask{
 		TaskExtension: task.TaskExtension{
 			Creator: taskCreator,
@@ -125,6 +141,8 @@ func _copy(ctx context.Context, srcObjPath, dstDirPath string, lazyCache ...bool
 		SrcStorageMp: srcStorage.GetStorage().MountPath,
 		DstStorageMp: dstStorage.GetStorage().MountPath,
 		NotifyEventID: notifyEventID,
+		NotifyID:      notifyID,
+		NotifyName:    notifyName,
 	}
 	if notifyEventID != "" {
 		notification.AddEventTask(notifyEventID)
@@ -162,6 +180,8 @@ func copyBetween2Storages(t *CopyTask, srcStorage, dstStorage driver.Driver, src
 				SrcStorageMp: srcStorage.GetStorage().MountPath,
 				DstStorageMp: dstStorage.GetStorage().MountPath,
 				NotifyEventID: t.NotifyEventID,
+				NotifyID:      t.NotifyID,
+				NotifyName:    t.NotifyName,
 			}
 			if t.NotifyEventID != "" {
 				notification.AddEventTask(t.NotifyEventID)

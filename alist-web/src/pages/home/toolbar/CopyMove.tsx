@@ -9,6 +9,7 @@ import {
   fsMove,
   handleResp,
   handleRespWithNotifySuccess,
+  notify,
   r,
 } from "~/utils"
 import { NotificationItem, Resp } from "~/types"
@@ -110,6 +111,9 @@ export const Copy = () => {
           notifyWhenDone() ? notifyID() : 0,
         )
         handleRespWithNotifySuccess(resp, () => {
+          if (notifyWhenDone() && notifyID() > 0) {
+            notify.info(t("notifications.bound_success"))
+          }
           refresh()
           onClose()
         })

@@ -19,7 +19,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const ContextEventIDKey = "notification_event_id"
+const (
+	ContextEventIDKey          = "notification_event_id"
+	ContextNotificationIDKey   = "notification_id"
+	ContextNotificationNameKey = "notification_name"
+)
 
 type PushDeerConfig struct {
 	PushKey  string `json:"push_key"`
@@ -51,6 +55,16 @@ var httpClient = &http.Client{Timeout: 20 * time.Second}
 func EventIDFromContext(ctx context.Context) string {
 	eventID, _ := ctx.Value(ContextEventIDKey).(string)
 	return eventID
+}
+
+func NotificationIDFromContext(ctx context.Context) uint {
+	notificationID, _ := ctx.Value(ContextNotificationIDKey).(uint)
+	return notificationID
+}
+
+func NotificationNameFromContext(ctx context.Context) string {
+	notificationName, _ := ctx.Value(ContextNotificationNameKey).(string)
+	return notificationName
 }
 
 func SendByID(ctx context.Context, id uint, title, body string) error {
@@ -237,13 +251,13 @@ var (
 	eventSeq uint64
 )
 
-func NewEvent(notificationID uint, title, body string) (string, error) {
+func NewEvent(notificationID uint, title, body string) (string, *model.Notification, error) {
 	item, err := op.GetNotificationById(notificationID)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	if !item.Enabled {
-		return "", errors.New("notification is disabled")
+		return "", nil, errors.New("notification is disabled")
 	}
 	id := fmt.Sprintf("%d-%d", time.Now().UnixNano(), atomic.AddUint64(&eventSeq, 1))
 	events.Store(id, &event{
@@ -253,7 +267,7 @@ func NewEvent(notificationID uint, title, body string) (string, error) {
 		Body:           body,
 		StartedAt:      time.Now(),
 	})
-	return id, nil
+	return id, item, nil
 }
 
 func AddEventTask(eventID string) {

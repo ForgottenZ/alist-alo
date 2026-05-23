@@ -204,6 +204,9 @@ export const Task = (props: TaskAttribute & TasksProps & TaskLocalSetter) => {
           >
             {title}
           </Heading>
+          <Show when={props.has_notification}>
+            <Badge colorScheme="accent">{t("tasks.notification")}</Badge>
+          </Show>
         </HStack>
         <Show when={me().role === 2}>
           <Center w={cols[1].w}>
@@ -326,6 +329,20 @@ export const Task = (props: TaskAttribute & TasksProps & TaskLocalSetter) => {
                   )
                 }}
               </For>
+            </Show>
+            <Show when={props.has_notification}>
+              <GridItem
+                color="$neutral9"
+                textAlign="right"
+                css={{ whiteSpace: "nowrap" }}
+              >
+                {t(`tasks.attr.notification`)}
+              </GridItem>
+              <GridItem color="$neutral9">
+                {props.notification_name ||
+                  props.notification_id ||
+                  props.notification_event_id}
+              </GridItem>
             </Show>
             <GridItem
               color="$neutral9"

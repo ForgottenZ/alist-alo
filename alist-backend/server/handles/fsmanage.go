@@ -142,8 +142,9 @@ func FsCopy(c *gin.Context) {
 		}
 	}
 	var eventID string
+	var notifyItem *model.Notification
 	if req.NotifyID > 0 {
-		eventID, err = notification.NewEvent(
+		eventID, notifyItem, err = notification.NewEvent(
 			req.NotifyID,
 			"AList copy finished",
 			fmt.Sprintf("Copy %v from %s to %s.", req.Names, req.SrcDir, req.DstDir),
@@ -156,6 +157,8 @@ func FsCopy(c *gin.Context) {
 	copyCtx := context.Context(c)
 	if eventID != "" {
 		copyCtx = context.WithValue(c, notification.ContextEventIDKey, eventID)
+		copyCtx = context.WithValue(copyCtx, notification.ContextNotificationIDKey, notifyItem.ID)
+		copyCtx = context.WithValue(copyCtx, notification.ContextNotificationNameKey, notifyItem.Name)
 	}
 	var addedTasks []task.TaskExtensionInfo
 	for i, name := range req.Names {
@@ -170,9 +173,16 @@ func FsCopy(c *gin.Context) {
 		}
 	}
 	notification.FinishEventIfIdle(eventID, nil)
-	common.SuccessResp(c, gin.H{
+	resp := gin.H{
 		"tasks": getTaskInfos(addedTasks),
-	})
+	}
+	if notifyItem != nil {
+		resp["notification"] = gin.H{
+			"id":   notifyItem.ID,
+			"name": notifyItem.Name,
+		}
+	}
+	common.SuccessResp(c, resp)
 }
 
 type RenameReq struct {

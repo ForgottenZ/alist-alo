@@ -28,6 +28,7 @@
   "filter": "Filter",
   "expand": "Expand",
   "fold": "Fold",
+  "notification": "Notification",
   "expand_all": "Expand All",
   "fold_all": "Fold All",
   "attr": {
@@ -58,6 +59,7 @@
       "password": "Extraction Password"
     },
     "time_elapsed": "Time Elapsed",
+    "notification": "Notification",
     "status": "Status",
     "err": "Error"
   },
