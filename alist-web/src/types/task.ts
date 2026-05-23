@@ -10,4 +10,8 @@ export interface TaskInfo {
   end_time: string | null
   total_bytes: number
   error: string
+  has_notification: boolean
+  notification_id?: number
+  notification_name?: string
+  notification_event_id?: string
 }

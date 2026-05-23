@@ -29,6 +29,7 @@
   "filter": "筛选器",
   "expand": "展开",
   "fold": "折叠...",
+  "notification": "通知",
   "expand_all": "全部展开",
   "fold_all": "折叠所有",
   "attr": {
@@ -68,6 +69,7 @@
       "message": "留言"
     },
     "time_elapsed": "用时",
+    "notification": "通知",
     "status": "状态",
     "err": "错误"
   },
