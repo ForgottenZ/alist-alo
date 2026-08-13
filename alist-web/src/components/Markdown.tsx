@@ -18,6 +18,115 @@ import { Motion } from "@motionone/solid"
 import { getMainColor, me } from "~/store"
 
 type TocItem = { indent: number; text: string; tagName: string; key: string }
+type HastNode = {
+  type?: string
+  tagName?: string
+  properties?: Record<string, unknown>
+  children?: HastNode[]
+}
+
+const unsafeRawHtmlTags = new Set([
+  "base",
+  "embed",
+  "frame",
+  "frameset",
+  "iframe",
+  "link",
+  "meta",
+  "noframes",
+  "object",
+  "plaintext",
+  "script",
+  "style",
+  "svg",
+  "xmp",
+])
+
+const urlAttrs = new Set([
+  "action",
+  "cite",
+  "formaction",
+  "href",
+  "poster",
+  "src",
+  "xlinkhref",
+])
+
+const safeUrl = (attr: string, value: unknown) => {
+  if (typeof value !== "string") return true
+  const normalized = value.trim().replace(/[\u0000-\u001F\u007F\s]+/g, "")
+  const lower = normalized.toLowerCase()
+  if (
+    lower === "" ||
+    lower.startsWith("#") ||
+    lower.startsWith("/") ||
+    lower.startsWith("./") ||
+    lower.startsWith("../") ||
+    lower.startsWith("?")
+  ) {
+    return true
+  }
+  if (
+    lower.startsWith("http://") ||
+    lower.startsWith("https://") ||
+    lower.startsWith("mailto:") ||
+    lower.startsWith("tel:") ||
+    lower.startsWith("ftp://")
+  ) {
+    return true
+  }
+  return attr === "src" && lower.startsWith("data:image/")
+}
+
+const sanitizeProperties = (
+  tagName: string,
+  properties?: Record<string, unknown>,
+) => {
+  if (!properties) return
+  for (const key of Object.keys(properties)) {
+    const lower = key.toLowerCase()
+    if (
+      lower.startsWith("on") ||
+      lower === "style" ||
+      lower === "srcset" ||
+      lower === "srcdoc" ||
+      (urlAttrs.has(lower) && !safeUrl(lower, properties[key]))
+    ) {
+      delete properties[key]
+    }
+  }
+  if (tagName === "a" && properties.target === "_blank") {
+    properties.rel = "noopener noreferrer"
+  }
+  if (tagName === "input") {
+    const inputType = String(properties.type || "").toLowerCase()
+    if (inputType && inputType !== "checkbox") {
+      delete properties.type
+      delete properties.value
+    }
+  }
+}
+
+const sanitizeHtmlTree = (node: HastNode) => {
+  const children = node.children
+  if (!children) return
+  for (let i = children.length - 1; i >= 0; i--) {
+    const child = children[i]
+    if (child.type === "element") {
+      const tagName = (child.tagName || "").toLowerCase()
+      if (unsafeRawHtmlTags.has(tagName)) {
+        children.splice(i, 1)
+        continue
+      }
+      sanitizeProperties(tagName, child.properties)
+    }
+    sanitizeHtmlTree(child)
+  }
+}
+
+const rehypeSanitizeSafeHtml = () => (tree: HastNode) => {
+  sanitizeHtmlTree(tree)
+}
 
 const [isTocVisible, setVisible] = createSignal(false)
 const [isTocDisabled, setTocDisabled] = createStorageSignal(
@@ -219,6 +328,7 @@ export function Markdown(props: {
   ])
   const [rehypePlugins, setRehypePlugins] = createSignal<Function[]>([
     rehypeRaw,
+    rehypeSanitizeSafeHtml,
   ])
   createEffect(
     on(md, async () => {

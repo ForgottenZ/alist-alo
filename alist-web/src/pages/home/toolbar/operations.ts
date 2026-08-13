@@ -5,7 +5,7 @@ import { TbArchive, TbFileArrowRight } from "solid-icons/tb"
 import { TbCopy, TbLink } from "solid-icons/tb"
 import { AiTwotoneDelete } from "solid-icons/ai"
 import { CgFileAdd, CgFolderAdd } from "solid-icons/cg"
-import { AiOutlineCloudDownload } from "solid-icons/ai"
+import { AiFillStar, AiOutlineCloudDownload } from "solid-icons/ai"
 import { ImMoveUp } from "solid-icons/im"
 import { BiRegularRename } from "solid-icons/bi"
 import { HiOutlineFolderRemove } from "solid-icons/hi"
@@ -32,6 +32,8 @@ export const operations: Operations = {
   new_file: { icon: CgFileAdd, p: true },
   cancel_select: { icon: TiDeleteOutline },
   download: { icon: AiOutlineCloudDownload, color: "$primary9" },
+  pin: { icon: AiFillStar, color: "$warning9" },
+  unpin: { icon: AiFillStar, color: "$neutral9" },
 }
 // interface Operation {
 //   label: string;

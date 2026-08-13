@@ -9,17 +9,19 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@hope-ui/solid"
-import { useCopyLink, useT } from "~/hooks"
-import { objStore } from "~/store"
+import { useCopyLink, useRouter, useT } from "~/hooks"
+import { me, objStore } from "~/store"
 import { FileInfo } from "./info"
 import { OpenWith } from "../file/open-with"
 import { createSignal, Show } from "solid-js"
 import { BsQrCode } from "solid-icons/bs"
 import QRCode from "qrcode"
+import { ObjType, UserMethods, UserPermissions } from "~/types"
 
 export const Download = (props: { openWith?: boolean }) => {
   const t = useT()
   const { copyCurrentRawLink } = useCopyLink()
+  const { setSearchParams } = useRouter()
   const [qrUrl, setQrUrl] = createSignal("")
   QRCode.toDataURL(objStore.raw_url, {
     type: "image/jpeg",
@@ -36,6 +38,22 @@ export const Download = (props: { openWith?: boolean }) => {
         <Button as="a" href={objStore.raw_url} target="_blank">
           {t("home.preview.download")}
         </Button>
+        <Show
+          when={
+            objStore.obj.type === ObjType.UNKNOWN &&
+            UserMethods.can(
+              me(),
+              UserPermissions.indexOf("open_as_text"),
+            )
+          }
+        >
+          <Button
+            colorScheme="success"
+            onClick={() => setSearchParams({ open_as_text: "true" })}
+          >
+            {t("home.preview.open_as_text")}
+          </Button>
+        </Show>
         <Popover opened={pinned() || hover()} motionPreset="none">
           <PopoverTrigger
             as={IconButton}

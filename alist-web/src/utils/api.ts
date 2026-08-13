@@ -15,6 +15,7 @@ import { r } from "."
 export const fsGet = (
   path: string = "/",
   password = "",
+  forceText = false,
   cancelToken?: CancelToken,
 ): Promise<FsGetResp> => {
   return r.post(
@@ -22,6 +23,7 @@ export const fsGet = (
     {
       path: path,
       password: password,
+      force_text: forceText,
     },
     {
       cancelToken: cancelToken,
@@ -107,6 +109,14 @@ export const fsCopy = (
 
 export const fsRemove = (dir: string, names: string[]): PEmptyResp => {
   return r.post("/fs/remove", { dir, names })
+}
+
+export const fsSetPinned = (
+  path: string,
+  password: string,
+  pinned: boolean,
+): PEmptyResp => {
+  return r.post("/fs/pin", { path, password, pinned })
 }
 
 export const fsRemoveEmptyDirectory = (src_dir: string): PEmptyResp => {

@@ -142,6 +142,7 @@ export const ListItem = (props: { obj: StoreObj; index: number }) => {
             }}
             title={props.obj.name}
           >
+            {props.obj.pinned ? "⭐" : ""}
             {props.obj.name}
           </Text>
         </HStack>

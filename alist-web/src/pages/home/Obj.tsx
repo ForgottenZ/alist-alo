@@ -40,17 +40,22 @@ export const Obj = () => {
       ? parseInt(searchParams["page"], 10) || 1
       : undefined
   })
+  const forceText = createMemo(
+    () => searchParams["open_as_text"] === "true",
+  )
   let lastPathname: string
   let lastPage: number | undefined
+  let lastForceText: boolean | undefined
   createEffect(
-    on([pathname, page], async ([pathname, page]) => {
-      if (lastPathname) {
+    on([pathname, page, forceText], async ([pathname, page, forceText]) => {
+      if (lastPathname && lastForceText === forceText) {
         recordHistory(lastPathname, lastPage)
       }
       lastPathname = pathname
       lastPage = page
+      lastForceText = forceText
       useObjTitle()
-      await handlePathChange(pathname, page)
+      await handlePathChange(pathname, page, undefined, undefined, forceText)
     }),
   )
   return (

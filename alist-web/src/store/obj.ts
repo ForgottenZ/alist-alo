@@ -101,6 +101,9 @@ export const sortObjs = (orderBy: OrderBy, reverse?: boolean) => {
     "objs",
     produce((objs) =>
       objs.sort((a, b) => {
+        if (a.pinned !== b.pinned) {
+          return a.pinned ? -1 : 1
+        }
         return (reverse ? -1 : 1) * naturalSort(a[orderBy], b[orderBy])
       }),
     ),

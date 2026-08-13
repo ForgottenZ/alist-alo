@@ -18,6 +18,7 @@ export interface Obj {
   thumb: string
   type: ObjType
   path: string
+  pinned: boolean
 }
 
 export type StoreObj = Obj & {

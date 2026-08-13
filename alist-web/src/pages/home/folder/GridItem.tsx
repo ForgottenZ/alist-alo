@@ -139,6 +139,7 @@ export const GridItem = (props: { obj: StoreObj; index: number }) => {
           fontSize="$sm"
           title={props.obj.name}
         >
+          {props.obj.pinned ? "⭐" : ""}
           {props.obj.name}
         </Text>
       </VStack>

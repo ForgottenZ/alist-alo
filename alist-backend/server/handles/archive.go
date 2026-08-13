@@ -327,6 +327,23 @@ func normalizeArchiveVolumeSize(volumeSize string) (string, error) {
 	return fmt.Sprintf("%d%c", size, unit), nil
 }
 
+func normalizeArchiveDstName(dstName, archiveFormat string) (string, error) {
+	archiveName := strings.TrimSpace(dstName)
+	if archiveName == "" {
+		return "", errors.New("dst_name can not be empty")
+	}
+	if strings.ContainsAny(archiveName, `/\`) || archiveName != stdpath.Base(archiveName) {
+		return "", errors.New("dst_name must be a file name")
+	}
+	if !strings.HasSuffix(strings.ToLower(archiveName), "."+archiveFormat) {
+		archiveName += "." + archiveFormat
+	}
+	if strings.ContainsAny(archiveName, `/\`) || archiveName != stdpath.Base(archiveName) {
+		return "", errors.New("dst_name must be a file name")
+	}
+	return archiveName, nil
+}
+
 func FsArchiveCompress(c *gin.Context) {
 	var req ArchiveCompressReq
 	if err := c.ShouldBind(&req); err != nil {
@@ -347,13 +364,10 @@ func FsArchiveCompress(c *gin.Context) {
 		common.ErrorStrResp(c, "format must be zip or 7z", 400)
 		return
 	}
-	archiveName := strings.TrimSpace(req.DstName)
-	if archiveName == "" {
-		common.ErrorStrResp(c, "dst_name can not be empty", 400)
+	archiveName, err := normalizeArchiveDstName(req.DstName, archiveFormat)
+	if err != nil {
+		common.ErrorResp(c, err, 400)
 		return
-	}
-	if !strings.HasSuffix(strings.ToLower(archiveName), "."+archiveFormat) {
-		archiveName += "." + archiveFormat
 	}
 	copyMode := fs.NormalizeArchiveCompressCopyMode(req.CopyMode)
 	if !fs.IsArchiveCompressCopyModeValid(copyMode) {

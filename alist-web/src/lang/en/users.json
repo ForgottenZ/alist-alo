@@ -14,7 +14,9 @@
     "ftp_manage": "FTP manage",
     "read_archives": "Read archives",
     "decompress": "Decompress",
-    "compress": "Compress"
+    "compress": "Compress",
+    "open_as_text": "Open unknown files as text",
+    "pin": "Pin files and folders"
   },
   "username": "Username",
   "password": "Password",

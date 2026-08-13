@@ -186,6 +186,7 @@ func _fs(g *gin.RouterGroup) {
 	g.POST("/recursive_move", handles.FsRecursiveMove)
 	g.POST("/copy", handles.FsCopy)
 	g.POST("/remove", handles.FsRemove)
+	g.POST("/pin", handles.FsSetPinned)
 	g.POST("/remove_empty_directory", handles.FsRemoveEmptyDirectory)
 	uploadLimiter := middlewares.UploadRateLimiter(stream.ClientUploadLimit)
 	g.GET("/chunk/status", middlewares.FsUp, handles.FsChunkStatus)

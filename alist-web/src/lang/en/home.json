@@ -14,7 +14,8 @@
     "tr-install": "TrollStore",
     "tr-installing": "TrollStore Installing",
     "open_in_new_window": "Open in new window",
-    "auto_next": "Auto next"
+    "auto_next": "Auto next",
+    "open_as_text": "Open as text"
   },
   "layouts": {
     "list": "List View",
@@ -97,7 +98,11 @@
     "compress_copy_mode_temp": "Copy to global temp",
     "compress_copy_mode_src_temp": "Copy to current folder temp",
     "compress_copy_mode_none": "No copy (compress in place)",
-    "notify_when_done": "Notify when done"
+    "notify_when_done": "Notify when done",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "pin_success": "Pinned",
+    "unpin_success": "Unpinned"
   },
   "upload": {
     "add_as_task": "Add as task",

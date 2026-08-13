@@ -47,6 +47,8 @@ type User struct {
 	//   12: can read archives
 	//   13: can decompress archives
 	//   14: can compress files/folders
+	//   15: can open unknown files as text
+	//   16: can pin files/folders
 	Permission int32  `json:"permission"`
 	OtpSecret  string `json:"-"`
 	SsoID      string `json:"sso_id"` // unique by sso platform
@@ -140,6 +142,14 @@ func (u *User) CanDecompress() bool {
 
 func (u *User) CanCompress() bool {
 	return (u.Permission>>14)&1 == 1
+}
+
+func (u *User) CanOpenAsText() bool {
+	return (u.Permission>>15)&1 == 1
+}
+
+func (u *User) CanPin() bool {
+	return (u.Permission>>16)&1 == 1
 }
 
 func (u *User) JoinPath(reqPath string) (string, error) {

@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -48,6 +49,50 @@ func getWebdavChunkUploadTempPath(tempDir, uploadID, reqPath string) string {
 	sum := sha256.Sum256([]byte(uploadID + ":" + reqPath))
 	shortName := hex.EncodeToString(sum[:16])
 	return filepath.Join(tempDir, shortName+".part")
+}
+
+type webdavChunkUploadProgress struct {
+	UploadID    string    `json:"upload_id"`
+	LastChunk   int       `json:"last_chunk"`
+	TotalChunks int       `json:"total_chunks"`
+	TotalSize   int64     `json:"total_size"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+func getWebdavChunkUploadProgressPath(tempPath string) string {
+	return tempPath + ".progress.json"
+}
+
+func readWebdavChunkUploadProgress(progressPath string) (webdavChunkUploadProgress, bool, error) {
+	progress := webdavChunkUploadProgress{LastChunk: -1}
+	data, err := os.ReadFile(progressPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return progress, false, nil
+		}
+		return progress, false, err
+	}
+	if err = json.Unmarshal(data, &progress); err != nil {
+		return webdavChunkUploadProgress{LastChunk: -1}, false, err
+	}
+	return progress, true, nil
+}
+
+func writeWebdavChunkUploadProgress(progressPath string, progress webdavChunkUploadProgress) error {
+	progress.UpdatedAt = time.Now()
+	data, err := json.Marshal(progress)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(progressPath, data, 0o644)
+}
+
+func parseWebdavChunkPartSize(r *http.Request) int64 {
+	partSize, _ := strconv.ParseInt(r.Header.Get("Chunk-Size"), 10, 64)
+	if partSize < 0 {
+		return 0
+	}
+	return partSize
 }
 
 type Handler struct {
@@ -398,6 +443,9 @@ func (h *Handler) handleChunkedPut(ctx context.Context, reqPath string, r *http.
 	if err != nil || totalChunks <= 0 {
 		return http.StatusBadRequest, errors.New("invalid total chunks")
 	}
+	if chunkIndex >= totalChunks {
+		return http.StatusBadRequest, errors.New("chunk index exceeds total chunks")
+	}
 	totalSize, err := strconv.ParseInt(r.Header.Get("Total-Size"), 10, 64)
 	if err != nil || totalSize < 0 {
 		return http.StatusBadRequest, errors.New("invalid total size")
@@ -412,37 +460,117 @@ func (h *Handler) handleChunkedPut(ctx context.Context, reqPath string, r *http.
 		return http.StatusInternalServerError, err
 	}
 	tempPath := getWebdavChunkUploadTempPath(tempDir, uploadID, reqPath)
+	progressPath := getWebdavChunkUploadProgressPath(tempPath)
 
 	lock := getWebdavChunkUploadLock(uploadID)
 	lock.Lock()
 	defer lock.Unlock()
 
+	progress := webdavChunkUploadProgress{
+		UploadID:    uploadID,
+		LastChunk:   -1,
+		TotalChunks: totalChunks,
+		TotalSize:   totalSize,
+	}
 	if chunkIndex == 0 {
 		_ = os.Remove(tempPath)
+		_ = os.Remove(progressPath)
+	} else {
+		var ok bool
+		progress, ok, err = readWebdavChunkUploadProgress(progressPath)
+		if err != nil {
+			return http.StatusInternalServerError, err
+		}
+		if !ok {
+			return http.StatusConflict, errors.New("chunk out of order")
+		}
+		if progress.UploadID != uploadID || progress.TotalChunks != totalChunks || progress.TotalSize != totalSize {
+			return http.StatusConflict, errors.New("chunk upload metadata mismatch")
+		}
 	}
-	f, err := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
-	if err != nil {
-		return http.StatusInternalServerError, err
-	}
-	if _, err = io.Copy(f, r.Body); err != nil {
-		_ = f.Close()
-		return http.StatusInternalServerError, err
-	}
-	if err = f.Close(); err != nil {
-		return http.StatusInternalServerError, err
+
+	resume := r.Header.Get("Resume-Upload") == "true"
+	if resume && progress.LastChunk >= chunkIndex {
+		_, _ = io.Copy(io.Discard, r.Body)
+	} else {
+		if chunkIndex != progress.LastChunk+1 {
+			_, _ = io.Copy(io.Discard, r.Body)
+			return http.StatusConflict, errors.New("chunk out of order")
+		}
+		f, err := os.OpenFile(tempPath, os.O_CREATE|os.O_RDWR, 0o644)
+		if err != nil {
+			return http.StatusInternalServerError, err
+		}
+		partSize := parseWebdavChunkPartSize(r)
+		if partSize > 0 {
+			if int64(chunkIndex) > totalSize/partSize {
+				_ = f.Close()
+				return http.StatusBadRequest, errors.New("chunk metadata size mismatch")
+			}
+			expectedSize := partSize
+			if chunkIndex == totalChunks-1 {
+				expectedSize = totalSize - int64(chunkIndex)*partSize
+			}
+			if expectedSize <= 0 || expectedSize > partSize {
+				_ = f.Close()
+				return http.StatusBadRequest, errors.New("chunk metadata size mismatch")
+			}
+			if _, err = f.Seek(int64(chunkIndex)*partSize, io.SeekStart); err != nil {
+				_ = f.Close()
+				return http.StatusInternalServerError, err
+			}
+			written, copyErr := io.Copy(f, r.Body)
+			closeErr := f.Close()
+			if copyErr != nil {
+				return http.StatusInternalServerError, copyErr
+			}
+			if closeErr != nil {
+				return http.StatusInternalServerError, closeErr
+			}
+			if written != expectedSize {
+				return http.StatusBadRequest, errors.New("chunk size mismatch")
+			}
+		} else {
+			if _, err = f.Seek(0, io.SeekEnd); err != nil {
+				_ = f.Close()
+				return http.StatusInternalServerError, err
+			}
+			if _, err = io.Copy(f, r.Body); err != nil {
+				_ = f.Close()
+				return http.StatusInternalServerError, err
+			}
+			if err = f.Close(); err != nil {
+				return http.StatusInternalServerError, err
+			}
+		}
+		progress.LastChunk = chunkIndex
+		progress.TotalChunks = totalChunks
+		progress.TotalSize = totalSize
+		if err = writeWebdavChunkUploadProgress(progressPath, progress); err != nil {
+			return http.StatusInternalServerError, err
+		}
 	}
 
 	if chunkIndex < totalChunks-1 {
 		return http.StatusOK, nil
 	}
-
-	f, err = os.Open(tempPath)
+	f, err := os.Open(tempPath)
 	if err != nil {
 		return http.StatusInternalServerError, err
+	}
+	stat, statErr := f.Stat()
+	if statErr != nil {
+		_ = f.Close()
+		return http.StatusInternalServerError, statErr
+	}
+	if stat.Size() != totalSize {
+		_ = f.Close()
+		return http.StatusBadRequest, errors.New("chunk upload size mismatch")
 	}
 	defer func() {
 		_ = f.Close()
 		_ = os.Remove(tempPath)
+		_ = os.Remove(progressPath)
 		cleanWebdavChunkUploadLock(uploadID)
 	}()
 

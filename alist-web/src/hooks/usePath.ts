@@ -42,10 +42,11 @@ export const resetGlobalPage = () => {
 }
 export const usePath = () => {
   const { pathname, to, searchParams } = useRouter()
-  const [, getObj] = useFetch((path: string) =>
+  const [, getObj] = useFetch((arg: { path: string; forceText: boolean }) =>
     fsGet(
-      path,
+      arg.path,
       password(),
+      arg.forceText,
       new axios.CancelToken((c) => {
         cancelObj = c
       }),
@@ -101,12 +102,13 @@ export const usePath = () => {
     index?: number,
     rp?: boolean,
     force?: boolean,
+    forceText = false,
   ) => {
     cancelObj?.()
     cancelList?.()
     retry_pass = rp ?? false
     ObjStore.setErr("")
-    if (hasHistory(path, index)) {
+    if (!forceText && hasHistory(path, index)) {
       log(`handle [${getHistoryKey(path, index)}] from history`)
       return recoverHistory(path, index)
     } else if (IsDirRecord[path]) {
@@ -114,14 +116,14 @@ export const usePath = () => {
       return handleFolder(path, index, undefined, undefined, force)
     } else {
       log(`handle [${getHistoryKey(path, index)}] as obj`)
-      return handleObj(path, index)
+      return handleObj(path, index, forceText)
     }
   }
 
   // handle enter obj that don't know if it is dir or file
-  const handleObj = async (path: string, index?: number) => {
+  const handleObj = async (path: string, index?: number, forceText = false) => {
     ObjStore.setState(State.FetchingObj)
-    const resp = await getObj(path)
+    const resp = await getObj({ path, forceText })
     handleRespWithoutNotify(
       resp,
       (data) => {
@@ -138,7 +140,7 @@ export const usePath = () => {
           ObjStore.setState(State.File)
         }
       },
-      handleErr,
+      (msg, code) => handleErr(msg, code, forceText),
     )
   }
 
@@ -178,8 +180,8 @@ export const usePath = () => {
     )
   }
 
-  const handleErr = (msg: string, code?: number) => {
-    if (code === 403) {
+  const handleErr = (msg: string, code?: number, forceText = false) => {
+    if (code === 403 && !forceText) {
       ObjStore.setState(State.NeedPassword)
       if (retry_pass) {
         notify.error(msg)
@@ -217,12 +219,24 @@ export const usePath = () => {
       ) {
         const page = globalPage
         resetGlobalPage()
-        await handlePathChange(path, globalPage, retry_pass, force)
+        await handlePathChange(
+          path,
+          globalPage,
+          retry_pass,
+          force,
+          searchParams["open_as_text"] === "true",
+        )
         while (globalPage < page) {
           await loadMore()
         }
       } else {
-        await handlePathChange(path, globalPage, retry_pass, force)
+        await handlePathChange(
+          path,
+          globalPage,
+          retry_pass,
+          force,
+          searchParams["open_as_text"] === "true",
+        )
       }
       window.scroll({ top: scroll, behavior: "smooth" })
     },

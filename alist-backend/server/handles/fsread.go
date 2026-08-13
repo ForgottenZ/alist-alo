@@ -3,6 +3,7 @@ package handles
 import (
 	"fmt"
 	stdpath "path"
+	"sort"
 	"strings"
 	"time"
 
@@ -45,6 +46,7 @@ type ObjResp struct {
 	Type        int                        `json:"type"`
 	HashInfoStr string                     `json:"hashinfo"`
 	HashInfo    map[*utils.HashType]string `json:"hash_info"`
+	Pinned      bool                       `json:"pinned"`
 }
 
 type FsListResp struct {
@@ -90,6 +92,11 @@ func FsList(c *gin.Context) {
 		common.ErrorResp(c, err, 500)
 		return
 	}
+	pinnedPaths, err := sortPinnedObjects(objs, reqPath)
+	if err != nil {
+		common.ErrorResp(c, err, 500)
+		return
+	}
 	total, objs := pagination(objs, &req.PageReq)
 	provider := "unknown"
 	storage, err := fs.GetStorage(reqPath, &fs.GetStoragesArgs{})
@@ -97,7 +104,7 @@ func FsList(c *gin.Context) {
 		provider = storage.GetStorage().Driver
 	}
 	common.SuccessResp(c, FsListResp{
-		Content:  toObjsResp(objs, reqPath, isEncrypt(meta, reqPath)),
+		Content:  toObjsResp(objs, reqPath, isEncrypt(meta, reqPath), pinnedPaths),
 		Total:    int64(total),
 		Readme:   getReadme(meta, reqPath),
 		Header:   getHeader(meta, reqPath),
@@ -207,10 +214,28 @@ func pagination(objs []model.Obj, req *model.PageReq) (int, []model.Obj) {
 	return total, objs[start:end]
 }
 
-func toObjsResp(objs []model.Obj, parent string, encrypt bool) []ObjResp {
+func sortPinnedObjects(objs []model.Obj, parent string) (map[string]struct{}, error) {
+	paths := make([]string, 0, len(objs))
+	for _, obj := range objs {
+		paths = append(paths, stdpath.Join(parent, obj.GetName()))
+	}
+	pinnedPaths, err := op.GetPinnedPaths(paths)
+	if err != nil {
+		return nil, err
+	}
+	sort.SliceStable(objs, func(i, j int) bool {
+		_, iPinned := pinnedPaths[stdpath.Join(parent, objs[i].GetName())]
+		_, jPinned := pinnedPaths[stdpath.Join(parent, objs[j].GetName())]
+		return iPinned && !jPinned
+	})
+	return pinnedPaths, nil
+}
+
+func toObjsResp(objs []model.Obj, parent string, encrypt bool, pinnedPaths map[string]struct{}) []ObjResp {
 	var resp []ObjResp
 	for _, obj := range objs {
 		thumb, _ := model.GetThumb(obj)
+		_, pinned := pinnedPaths[stdpath.Join(parent, obj.GetName())]
 		resp = append(resp, ObjResp{
 			Id:          obj.GetID(),
 			Path:        obj.GetPath(),
@@ -224,6 +249,7 @@ func toObjsResp(objs []model.Obj, parent string, encrypt bool) []ObjResp {
 			Sign:        common.Sign(obj, parent, encrypt),
 			Thumb:       thumb,
 			Type:        utils.GetObjType(obj.GetName(), obj.IsDir()),
+			Pinned:      pinned,
 		})
 	}
 	return resp
@@ -232,6 +258,7 @@ func toObjsResp(objs []model.Obj, parent string, encrypt bool) []ObjResp {
 type FsGetReq struct {
 	Path     string `json:"path" form:"path"`
 	Password string `json:"password" form:"password"`
+	ForceText bool  `json:"force_text" form:"force_text"`
 }
 
 type FsGetResp struct {
@@ -271,6 +298,18 @@ func FsGet(c *gin.Context) {
 	if err != nil {
 		common.ErrorResp(c, err, 500)
 		return
+	}
+	objType := utils.GetObjType(obj.GetName(), obj.IsDir())
+	if req.ForceText {
+		if obj.IsDir() || objType != conf.UNKNOWN {
+			common.ErrorStrResp(c, "only unknown file types can be opened as text", 400)
+			return
+		}
+		if !user.CanOpenAsText() {
+			common.ErrorResp(c, errs.PermissionDenied, 403)
+			return
+		}
+		objType = conf.TEXT
 	}
 	var rawURL string
 
@@ -340,14 +379,14 @@ func FsGet(c *gin.Context) {
 			HashInfoStr: obj.GetHash().String(),
 			HashInfo:    obj.GetHash().Export(),
 			Sign:        common.Sign(obj, parentPath, isEncrypt(meta, reqPath)),
-			Type:        utils.GetFileType(obj.GetName()),
+			Type:        objType,
 			Thumb:       thumb,
 		},
 		RawURL:   rawURL,
 		Readme:   getReadme(meta, reqPath),
 		Header:   getHeader(meta, reqPath),
 		Provider: provider,
-		Related:  toObjsResp(related, parentPath, isEncrypt(parentMeta, parentPath)),
+		Related:  toObjsResp(related, parentPath, isEncrypt(parentMeta, parentPath), nil),
 	})
 }
 

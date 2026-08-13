@@ -1,10 +1,24 @@
 import { Menu, Item, Submenu } from "solid-contextmenu"
-import { useCopyLink, useDownload, useLink, useT } from "~/hooks"
+import {
+  useCopyLink,
+  useDownload,
+  useLink,
+  usePath,
+  useRouter,
+  useT,
+} from "~/hooks"
 import "solid-contextmenu/dist/style.css"
 import { HStack, Icon, Text, useColorMode, Image } from "@hope-ui/solid"
 import { operations } from "../toolbar/operations"
 import { For, Show } from "solid-js"
-import { bus, convertURL, notify } from "~/utils"
+import {
+  bus,
+  convertURL,
+  fsSetPinned,
+  handleResp,
+  notify,
+  pathJoin,
+} from "~/utils"
 import { ObjType, UserMethods, UserPermissions } from "~/types"
 import {
   getSettingBool,
@@ -12,6 +26,7 @@ import {
   me,
   oneChecked,
   selectedObjs,
+  password,
 } from "~/store"
 import { players } from "../previews/video_box"
 import { BsPlayCircleFill } from "solid-icons/bs"
@@ -42,6 +57,8 @@ export const ContextMenu = () => {
     return UserMethods.is_admin(me()) || getSettingBool("package_download")
   }
   const { rawLink } = useLink()
+  const { pathname } = useRouter()
+  const { refresh } = usePath()
   return (
     <Menu
       id={1}
@@ -65,6 +82,29 @@ export const ContextMenu = () => {
         )}
       </For>
       <Show when={oneChecked()}>
+        <Item
+          hidden={() => {
+            const index = UserPermissions.indexOf("pin")
+            return !UserMethods.can(me(), index)
+          }}
+          onClick={async () => {
+            const obj = selectedObjs()[0]
+            const pinned = !obj.pinned
+            const resp = await fsSetPinned(
+              pathJoin(pathname(), obj.name),
+              password(),
+              pinned,
+            )
+            handleResp(resp, async () => {
+              notify.success(
+                t(`home.toolbar.${pinned ? "pin_success" : "unpin_success"}`),
+              )
+              await refresh()
+            })
+          }}
+        >
+          <ItemContent name={selectedObjs()[0]?.pinned ? "unpin" : "pin"} />
+        </Item>
         <Item
           hidden={() => {
             const index = UserPermissions.findIndex(

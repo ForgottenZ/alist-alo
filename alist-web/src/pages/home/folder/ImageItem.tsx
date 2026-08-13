@@ -1,4 +1,4 @@
-import { Center, VStack, Icon } from "@hope-ui/solid"
+import { Center, VStack, Icon, Text } from "@hope-ui/solid"
 import { Motion } from "@motionone/solid"
 import { useContextMenu } from "solid-contextmenu"
 import { batch, Show } from "solid-js"
@@ -59,6 +59,11 @@ export const ImageItem = (props: { obj: StoreObj; index: number }) => {
         }}
       >
         <Center w="$full" pos="relative">
+          <Show when={props.obj.pinned}>
+            <Text pos="absolute" right="$1" top="$1" zIndex="1">
+              ⭐
+            </Text>
+          </Show>
           <Show when={checkboxOpen()}>
             <ItemCheckbox
               pos="absolute"

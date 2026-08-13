@@ -32,6 +32,8 @@ export const UserPermissions = [
   "read_archives",
   "decompress",
   "compress",
+  "open_as_text",
+  "pin",
 ] as const
 
 export const UserMethods = {

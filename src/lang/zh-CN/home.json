@@ -49,7 +49,8 @@
     "tr-install": "TrollStore",
     "tr-installing": "TrollStore 正在安装",
     "open_in_new_window": "在新窗口中打开",
-    "auto_next": "自动下一个"
+    "auto_next": "自动下一个",
+    "open_as_text": "以文本方式打开"
   },
   "layouts": {
     "list": "列表视图",
@@ -154,7 +155,11 @@
     "regex_rename_preview_new_name": "新名称",
     "regular_rename": "正则表达式文件重命名。 在第一行输入源文件名正则表达式，并在第二行输入新文件名正则表达式。",
     "sequential_renaming_desc": "新文件名将有一个数值起始值附加到它， 并且它将通过向起始值添加 1 来按顺序显示。 在第一行输入新的文件名，并在第二行输入起始值。",
-    "notify_when_done": "完成后通知"
+    "notify_when_done": "完成后通知",
+    "pin": "置顶",
+    "unpin": "取消置顶",
+    "pin_success": "已置顶",
+    "unpin_success": "已取消置顶"
   },
   "upload": {
     "add_as_task": "添加为任务",
