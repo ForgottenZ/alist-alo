@@ -10,7 +10,7 @@ import {
 import { createSignal } from "solid-js"
 import { FolderChooseInput, MaybeLoading } from "~/components"
 import { useFetch, useManageTitle, useT, useUtil } from "~/hooks"
-import { Group, SettingItem, PResp } from "~/types"
+import { Flag, Group, SettingItem, PResp, Type } from "~/types"
 import { handleResp, notify, r } from "~/utils"
 import { Item } from "./SettingItem"
 
@@ -70,33 +70,32 @@ const OtherSettings = () => {
   )
 
   const [saveWebSettingsLoading, saveWebSettings] = useFetch(
-    (): PResp<any> =>
-      r.post("/admin/setting/save", [
+    (): PResp<any> => {
+      const findSetting = (key: string, fallback: string): SettingItem => {
+        const current = settings().find((i) => i.key === key)
+        return {
+          key,
+          value: current?.value ?? fallback,
+          type: current?.type ?? Type.String,
+          group: current?.group ?? Group.SINGLE,
+          flag: current?.flag ?? Flag.PUBLIC,
+          help: current?.help ?? "",
+          options: current?.options ?? "",
+        }
+      }
+      return r.post("/admin/setting/save", [
+        findSetting("web_default_try_rapid", "false"),
+        findSetting("web_default_chunk_upload", "false"),
+        findSetting("web_footer_powered_by", "Powered by AList"),
+        findSetting("web_footer_powered_by_href", "https://github.com/alist-org/alist"),
         {
-          key: "web_default_try_rapid",
-          value:
-            settings().find((i) => i.key === "web_default_try_rapid")?.value ||
-            "false",
+          ...findSetting("web_chunk_upload_part_size", "10485760"),
+          type: Type.Number,
+          group: Group.TRAFFIC,
+          flag: Flag.PUBLIC,
         },
-        {
-          key: "web_default_chunk_upload",
-          value:
-            settings().find((i) => i.key === "web_default_chunk_upload")
-              ?.value || "false",
-        },
-        {
-          key: "web_footer_powered_by",
-          value:
-            settings().find((i) => i.key === "web_footer_powered_by")?.value ||
-            "Powered by AList",
-        },
-        {
-          key: "web_chunk_upload_part_size",
-          value:
-            settings().find((i) => i.key === "web_chunk_upload_part_size")
-              ?.value || "10485760",
-        },
-      ]),
+      ])
+    },
   )
 
   const refresh = async () => {
@@ -122,7 +121,35 @@ const OtherSettings = () => {
       setThunderTempDir(
         data.find((i) => i.key === "thunder_temp_dir")?.value || "",
       )
-      setSettings(data)
+      const ensure = (
+        key: string,
+        value: string,
+        type: Type,
+        group: Group,
+        flag: Flag,
+      ): SettingItem => {
+        return (
+          data.find((i) => i.key === key) || {
+            key,
+            value,
+            type,
+            group,
+            flag,
+            help: "",
+            options: "",
+          }
+        )
+      }
+      setSettings([
+        ...data,
+        ensure(
+          "web_footer_powered_by_href",
+          "https://github.com/alist-org/alist",
+          Type.String,
+          Group.SINGLE,
+          Flag.PUBLIC,
+        ),
+      ].filter((item, index, arr) => arr.findIndex((i) => i.key === item.key) === index))
     })
   }
   refresh()
@@ -323,6 +350,22 @@ const OtherSettings = () => {
           }}
         />
         <Item
+          {...settings().find((i) => i.key === "web_footer_powered_by_href")!}
+          value={
+            settings().find((i) => i.key === "web_footer_powered_by_href")
+              ?.value || "https://github.com/alist-org/alist"
+          }
+          onChange={(str) => {
+            setSettings(
+              settings().map((i) =>
+                i.key === "web_footer_powered_by_href"
+                  ? { ...i, value: str }
+                  : i,
+              ),
+            )
+          }}
+        />
+        <Item
           {...settings().find((i) => i.key === "web_chunk_upload_part_size")!}
           value={
             settings().find((i) => i.key === "web_chunk_upload_part_size")?.value ||
@@ -344,7 +387,8 @@ const OtherSettings = () => {
         loading={saveWebSettingsLoading()}
         onClick={async () => {
           const resp = await saveWebSettings()
-          handleResp(resp, () => {
+          handleResp(resp, async () => {
+            await refresh()
             notify.success(t("global.save_success"))
           })
         }}

@@ -161,6 +161,7 @@ func InitialSettings() []model.SettingItem {
 		{Key: conf.IgnoreDirectLinkParams, Value: "sign,alist_ts", Type: conf.TypeString, Group: model.GLOBAL},
 		{Key: conf.WebauthnLoginEnabled, Value: "false", Type: conf.TypeBool, Group: model.GLOBAL, Flag: model.PUBLIC},
 		{Key: conf.WebFooterPoweredBy, Value: "Powered by AList", Type: conf.TypeString, Group: model.SINGLE, Flag: model.PUBLIC},
+		{Key: conf.WebFooterPoweredByHref, Value: "https://github.com/alist-org/alist", Type: conf.TypeString, Group: model.SINGLE, Flag: model.PUBLIC},
 		{Key: conf.WebDefaultTryRapid, Value: "false", Type: conf.TypeBool, Group: model.SINGLE, Flag: model.PUBLIC},
 		{Key: conf.WebDefaultChunkUpload, Value: "false", Type: conf.TypeBool, Group: model.SINGLE, Flag: model.PUBLIC},
 
@@ -225,7 +226,7 @@ func InitialSettings() []model.SettingItem {
 		{Key: conf.StreamMaxClientUploadSpeed, Value: "-1", Type: conf.TypeNumber, Group: model.TRAFFIC, Flag: model.PRIVATE},
 		{Key: conf.StreamMaxServerDownloadSpeed, Value: "-1", Type: conf.TypeNumber, Group: model.TRAFFIC, Flag: model.PRIVATE},
 		{Key: conf.StreamMaxServerUploadSpeed, Value: "-1", Type: conf.TypeNumber, Group: model.TRAFFIC, Flag: model.PRIVATE},
-		{Key: conf.WebChunkUploadPartSize, Value: "10485760", Type: conf.TypeNumber, Group: model.TRAFFIC, Flag: model.PRIVATE, Help: `chunk upload part size in bytes`},
+		{Key: conf.WebChunkUploadPartSize, Value: "10485760", Type: conf.TypeNumber, Group: model.TRAFFIC, Flag: model.PUBLIC, Help: `chunk upload part size in bytes`},
 	}
 	initialSettingItems = append(initialSettingItems, tool.Tools.Items()...)
 	if flags.Dev {

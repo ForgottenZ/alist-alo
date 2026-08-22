@@ -137,6 +137,14 @@ func ArchiveDecompress(ctx context.Context, srcObjPath, dstDirPath string, args 
 	return t, err
 }
 
+func ArchiveCompress(ctx context.Context, srcDirPath, dstDirPath string, args ArchiveCompressArgs) (task.TaskExtensionInfo, error) {
+	t, err := archiveCompress(ctx, srcDirPath, dstDirPath, args)
+	if err != nil {
+		log.Errorf("failed compress %v from %s to %s: %+v", args.Names, srcDirPath, dstDirPath, err)
+	}
+	return t, err
+}
+
 func ArchiveDriverExtract(ctx context.Context, path string, args model.ArchiveInnerArgs) (*model.Link, model.Obj, error) {
 	l, obj, err := archiveDriverExtract(ctx, path, args)
 	if err != nil {
