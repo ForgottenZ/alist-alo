@@ -1,6 +1,8 @@
 package handles
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"net/url"
 	"os"
@@ -40,6 +42,12 @@ func getChunkUploadLock(uploadID string) *sync.Mutex {
 
 func cleanChunkUploadLock(uploadID string) {
 	chunkUploadLocks.Delete(uploadID)
+}
+
+func getChunkUploadTempPath(tempDir, uploadID string) string {
+	sum := sha256.Sum256([]byte(uploadID))
+	shortName := hex.EncodeToString(sum[:16])
+	return filepath.Join(tempDir, shortName+".part")
 }
 
 func handleChunkUpload(c *gin.Context, path string, asTask bool, overwrite bool) {
@@ -83,7 +91,7 @@ func handleChunkUpload(c *gin.Context, path string, asTask bool, overwrite bool)
 		common.ErrorResp(c, err, 500)
 		return
 	}
-	tempPath := filepath.Join(tempDir, uploadID+".part")
+	tempPath := getChunkUploadTempPath(tempDir, uploadID)
 
 	lock := getChunkUploadLock(uploadID)
 	lock.Lock()
